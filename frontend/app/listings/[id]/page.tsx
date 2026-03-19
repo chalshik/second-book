@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, Listing, UserProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useLang } from "@/lib/lang-context";
+import { getDiscountedPrice } from "@/components/ListingCard";
 
 const COVER_COLORS = ["#2d4a3e", "#1e3a5f", "#c9502a", "#4a3728", "#3a3028", "#283848", "#5a4e38", "#4a2828"];
 
@@ -14,11 +15,6 @@ function getCoverColor(title: string): string {
     hash = title.charCodeAt(i) + ((hash << 5) - hash);
   }
   return COVER_COLORS[Math.abs(hash) % COVER_COLORS.length];
-}
-
-function formatPrice(price: number | null): { text: string; isFree: boolean } {
-  if (price === null || price === undefined || price === 0) return { text: "", isFree: true };
-  return { text: `${price} KGS`, isFree: false };
 }
 
 function relativeTime(iso: string): string {
@@ -37,7 +33,7 @@ export default function ListingDetailPage() {
   const d = t.detail;
   const router = useRouter();
   const [listing, setListing] = useState<Listing | null>(null);
-  const [sellerProfile, setSellerProfile] = useState<UserProfile | null>(null);
+  const [myProfile, setMyProfile] = useState<UserProfile | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"desc" | "details">("desc");
@@ -46,10 +42,11 @@ export default function ListingDetailPage() {
     api.listings.get(id).then(setListing).catch(() => setListing(null)).finally(() => setLoading(false));
   }, [id]);
 
+  // Fetch current user's profile for bookmark state
   useEffect(() => {
     if (!user) return;
     api.users.me().then((u) => {
-      setSellerProfile(u);
+      setMyProfile(u);
       setBookmarked(u.bookmarks.includes(id));
     });
   }, [user, id]);
@@ -102,22 +99,42 @@ export default function ListingDetailPage() {
   );
 
   const isOwner = user?.uid === listing.seller_id;
-  const price = formatPrice(listing.price);
   const coverColor = getCoverColor(listing.title);
   const sellerInitial = listing.seller_name ? listing.seller_name.charAt(0).toUpperCase() : "?";
+  const discount = listing.discount_percent || 0;
+  const hasPaid = listing.price !== null && listing.price !== undefined && listing.price > 0;
+  const finalPrice = getDiscountedPrice(listing.price, discount);
+  const hasDiscount = hasPaid && discount > 0;
+
+  // The seller's contact_info is stored on the listing seller's user doc.
+  // myProfile is the current logged-in user. If the current user IS the seller,
+  // we can show their own contact info. For other sellers, the contact info
+  // would need a separate API call; for now we show it only if the user is viewing
+  // their own listing, or show what's available.
+  // Note: the current API design doesn't expose other users' contact info via a separate
+  // endpoint, but the seller_name is on the listing. The contact_info shown was always
+  // the current user's own info (a bug). We fix this by not showing contact info
+  // we don't have. The seller would need to have their contact info in the listing description
+  // or via a future API.
+  const showContactInfo = isOwner && myProfile?.contact_info;
 
   return (
     <div className="detail-page">
       {/* Breadcrumb */}
       <div className="breadcrumb-bar">
-        <Link href="/">Home</Link> › <Link href="/listings">Books</Link> › {listing.title}
+        <Link href="/">Home</Link> › <Link href="/listings">Books</Link>{listing.genre ? <> › {listing.genre}</> : null} › {listing.title}
       </div>
 
       <div className="detail-layout">
         {/* Left: Book Visual + Tabs */}
         <div className="book-visual">
-          <div className="main-cover" style={{ background: coverColor }}>
+          <div className="main-cover" style={{ background: coverColor, position: "relative" }}>
             {listing.title}
+            {hasDiscount && (
+              <span className="discount-badge" style={{ position: "absolute", top: "1rem", right: "1rem", fontSize: "0.9rem", padding: "0.25rem 0.6rem" }}>
+                -{discount}%
+              </span>
+            )}
           </div>
 
           {/* Tabs */}
@@ -150,6 +167,12 @@ export default function ListingDetailPage() {
                     <tr style={{ borderBottom: "1px solid var(--border)" }}>
                       <td style={{ padding: "0.625rem 0", fontSize: "0.875rem", color: "var(--muted)", width: "40%" }}>Author</td>
                       <td style={{ padding: "0.625rem 0", fontSize: "0.875rem" }}>{listing.author}</td>
+                    </tr>
+                  )}
+                  {listing.genre && (
+                    <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                      <td style={{ padding: "0.625rem 0", fontSize: "0.875rem", color: "var(--muted)", width: "40%" }}>Genre</td>
+                      <td style={{ padding: "0.625rem 0", fontSize: "0.875rem" }}>{listing.genre}</td>
                     </tr>
                   )}
                   {listing.condition && (
@@ -190,12 +213,26 @@ export default function ListingDetailPage() {
           {/* Title & Author */}
           <h1 className="detail-title-main">{listing.title}</h1>
           {listing.author && <div className="detail-author-main">{listing.author}</div>}
+          {listing.genre && (
+            <span className="detail-category-badge">{listing.genre}</span>
+          )}
 
           {/* Price Block */}
           <div className="price-block">
-            <div className={`price-main ${price.isFree ? "free" : ""}`}>
-              {price.isFree ? d.free : price.text}
-            </div>
+            {!hasPaid ? (
+              <div className="price-main free">{d.free}</div>
+            ) : hasDiscount ? (
+              <>
+                <div className="price-main">
+                  {finalPrice} KGS
+                </div>
+                <div className="price-hint">
+                  <span className="price-original">{listing.price} KGS</span> — {discount}% off
+                </div>
+              </>
+            ) : (
+              <div className="price-main">{listing.price} KGS</div>
+            )}
             {listing.condition && (
               <div className="cond-row">
                 <span className="cond-label">Condition:</span>
@@ -211,37 +248,43 @@ export default function ListingDetailPage() {
               <div className="seller-avatar">{sellerInitial}</div>
               <div>
                 <div className="seller-name">{listing.seller_name}</div>
+                {isOwner && <div className="seller-meta">This is your listing</div>}
               </div>
             </div>
           </div>
 
           {/* Contact */}
-          <div className="contact-block">
-            <div className="contact-title">{d.contactSeller}</div>
-            {!isOwner ? (
-              sellerProfile?.contact_info ? (
-                <div className="contact-row">
-                  <span style={{ fontSize: "1.1rem", width: 20, textAlign: "center" }}>📱</span>
-                  <div>
-                    <div className="contact-method">Contact</div>
-                    <div className="contact-value">{sellerProfile.contact_info}</div>
-                  </div>
-                </div>
-              ) : user ? (
-                <p style={{ fontSize: "0.85rem", color: "var(--muted)", fontStyle: "italic" }}>{d.noContact}</p>
+          {!isOwner && (
+            <div className="contact-block">
+              <div className="contact-title">{d.contactSeller}</div>
+              {user ? (
+                <p style={{ fontSize: "0.85rem", color: "var(--muted)", fontStyle: "italic" }}>
+                  {d.noContact}
+                </p>
               ) : (
                 <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
                   <Link href="/auth/login" style={{ color: "var(--accent)" }}>{d.signIn}</Link>{" "}{d.signInToContact}
                 </p>
-              )
-            ) : (
-              <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>—</p>
-            )}
-          </div>
+              )}
+            </div>
+          )}
+
+          {isOwner && showContactInfo && (
+            <div className="contact-block">
+              <div className="contact-title">Your contact info (visible to buyers)</div>
+              <div className="contact-row" style={{ cursor: "default" }}>
+                <span style={{ fontSize: "1.1rem", width: 20, textAlign: "center" }}>📱</span>
+                <div>
+                  <div className="contact-method">Contact</div>
+                  <div className="contact-value">{myProfile.contact_info}</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* CTA Buttons */}
           <div className="detail-cta-buttons">
-            {!isOwner && (
+            {!isOwner && user && (
               <button onClick={toggleBookmark} className={bookmarked ? "btn-save-listing" : "btn-interested"}>
                 {bookmarked ? d.removeBookmark : d.bookmark}
               </button>
