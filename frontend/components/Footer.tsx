@@ -7,8 +7,8 @@ export function Footer() {
 
   return (
     <footer className="site-footer">
-      <span>&copy; 2024 {f.copy}</span>
-      <span>{f.tagline}</span>
+      <div className="footer-logo">Second Book<span>.</span></div>
+      <span>&copy; 2025 Second Book — {f.tagline}</span>
     </footer>
   );
 }

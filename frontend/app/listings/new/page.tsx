@@ -6,7 +6,14 @@ import { useAuth } from "@/lib/auth-context";
 import { useLang } from "@/lib/lang-context";
 import { api } from "@/lib/api";
 
-const CONDITIONS = ["new", "like_new", "good", "fair", "poor"] as const;
+const CONDITIONS = [
+  { value: "like_new", label: "Like New", desc: "No marks" },
+  { value: "good", label: "Good", desc: "Minor wear" },
+  { value: "fair", label: "Fair", desc: "Visible wear" },
+  { value: "poor", label: "Poor", desc: "Heavy wear" },
+] as const;
+
+const COVER_COLORS = ["#2d4a3e", "#1e3a5f", "#c9502a", "#4a3728", "#3a3028", "#283848", "#5a4e38"];
 
 export default function NewListingPage() {
   const { user, loading } = useAuth();
@@ -20,10 +27,19 @@ export default function NewListingPage() {
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [coverColor, setCoverColor] = useState(COVER_COLORS[0]);
 
   useEffect(() => {
     if (!loading && !user) router.push("/auth/login");
   }, [loading, user, router]);
+
+  useEffect(() => {
+    if (title) {
+      let hash = 0;
+      for (let i = 0; i < title.length; i++) hash = title.charCodeAt(i) + ((hash << 5) - hash);
+      setCoverColor(COVER_COLORS[Math.abs(hash) % COVER_COLORS.length]);
+    }
+  }, [title]);
 
   if (loading || !user) return null;
 
@@ -47,91 +63,144 @@ export default function NewListingPage() {
     }
   }
 
-  return (
-    <div className="form-page">
-      <Link href="/listings" className="detail-back">&larr; {t.detail.back}</Link>
+  const previewPrice = price ? `${parseFloat(price)} KGS` : "Free";
 
-      <div className="form-card">
-        <div className="form-header">
-          <h2 className="form-title">{n.title}</h2>
-          <p className="form-sub">{n.sub}</p>
+  return (
+    <div className="listing-form-page">
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="breadcrumb">
+          <Link href="/">Home</Link> › <Link href="/listings">Books</Link> › List a book
+        </div>
+        <div className="page-title">{n.title}</div>
+        <div className="page-subtitle">{n.sub}</div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="progress-bar">
+        <div className="step-item active"><div className="step-dot">1</div> Book details</div>
+        <div className="step-line" />
+        <div className="step-item"><div className="step-dot">2</div> Photos &amp; condition</div>
+        <div className="step-line" />
+        <div className="step-item"><div className="step-dot">3</div> Pricing</div>
+        <div className="step-line" />
+        <div className="step-item"><div className="step-dot">4</div> Review &amp; publish</div>
+      </div>
+
+      {/* Content */}
+      <div className="listing-form-content">
+        <div>
+          <form onSubmit={handleSubmit}>
+            {/* Book Information */}
+            <div className="form-section">
+              <div className="section-header-form">
+                <div className="section-title-sm">Book information</div>
+                <div className="section-desc">Basic details about the book you&apos;re selling.</div>
+              </div>
+              <div className="form-grid">
+                <div className="form-field field-span2">
+                  <label className="form-label">{n.titleLabel} <span className="label-req">*</span></label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={n.titlePlaceholder}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">{n.authorLabel}</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={n.authorPlaceholder}
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">{n.priceLabel} (KGS)</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder={n.pricePlaceholder}
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
+                </div>
+                <div className="form-field field-span2">
+                  <label className="form-label">{n.descriptionLabel}</label>
+                  <textarea
+                    className="form-input form-textarea"
+                    placeholder={n.descriptionPlaceholder}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Condition */}
+            <div className="form-section">
+              <div className="section-header-form">
+                <div className="section-title-sm">{n.conditionLabel}</div>
+                <div className="section-desc">Be honest — buyers appreciate accurate descriptions.</div>
+              </div>
+              <div className="condition-grid">
+                {CONDITIONS.map((c) => (
+                  <div
+                    key={c.value}
+                    className={`cond-option ${condition === c.value ? "selected" : ""}`}
+                    onClick={() => setCondition(c.value)}
+                  >
+                    <div className="cond-name">{c.label}</div>
+                    <div className="cond-desc">{c.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {error && <div className="form-error" style={{ marginBottom: "1rem" }}>{error}</div>}
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: "1rem", alignItems: "center", paddingTop: "1.5rem", borderTop: "1px solid var(--border)" }}>
+              <button
+                type="submit"
+                disabled={submitting || !title.trim()}
+                className="btn btn-primary"
+              >
+                {submitting ? n.publishing : n.publish}
+              </button>
+              <button type="button" onClick={() => router.back()} className="btn btn-secondary">
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
 
-        <form onSubmit={handleSubmit} className="form-stack">
-          <div className="form-field">
-            <label className="form-label">{n.titleLabel}</label>
-            <input
-              className="form-input"
-              type="text"
-              placeholder={n.titlePlaceholder}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">{n.authorLabel}</label>
-            <input
-              className="form-input"
-              type="text"
-              placeholder={n.authorPlaceholder}
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-field" style={{ flex: 1 }}>
-              <label className="form-label">{n.priceLabel}</label>
-              <input
-                className="form-input"
-                type="number"
-                min="0"
-                step="1"
-                placeholder={n.pricePlaceholder}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
+        {/* Sidebar Preview */}
+        <div>
+          <div className="sidebar-preview">
+            <div className="preview-label">Live preview</div>
+            <div className="preview-cover" style={{ background: coverColor }}>
+              {title || "Your book title"}
             </div>
-            <div className="form-field" style={{ flex: 1 }}>
-              <label className="form-label">{n.conditionLabel}</label>
-              <select
-                className="form-select"
-                value={condition}
-                onChange={(e) => setCondition(e.target.value)}
-              >
-                {CONDITIONS.map((c) => (
-                  <option key={c} value={c}>{t.conditions[c]}</option>
-                ))}
-              </select>
+            <div className="preview-body">
+              <div className="preview-title">{title || "Untitled book"}</div>
+              <div className="preview-author">{author || "Author name"}</div>
+              <div className="preview-row">
+                <span className="preview-price">{previewPrice}</span>
+                <span className="preview-badge">Available</span>
+              </div>
+              <div className="preview-hint">This is how buyers will see your listing in search results.</div>
             </div>
           </div>
-
-          <div className="form-field">
-            <label className="form-label">{n.descriptionLabel}</label>
-            <textarea
-              className="form-input form-textarea"
-              placeholder={n.descriptionPlaceholder}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          {error && <div className="form-error">{error}</div>}
-
-          <div className="form-actions">
-            <button
-              type="submit"
-              disabled={submitting || !title.trim()}
-              className="btn btn-primary btn-lg"
-            >
-              {submitting ? n.publishing : n.publish}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

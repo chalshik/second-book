@@ -29,7 +29,7 @@ export default function ListingsPage() {
   }, [listings, sort]);
 
   return (
-    <div className="page-container">
+    <div className="page-container" style={{ paddingTop: "calc(60px + 2rem)" }}>
       <div className="search-bar" style={{ marginBottom: "1.5rem" }}>
         <input
           className="search-input"
@@ -56,7 +56,7 @@ export default function ListingsPage() {
             <option value="price_desc">{t.listings.sortPriceHigh}</option>
           </select>
           {!authLoading && user && (
-            <Link href="/listings/new" className="btn btn-primary">
+            <Link href="/listings/new" className="btn btn-primary btn-sm">
               + {t.listings.sellBook}
             </Link>
           )}

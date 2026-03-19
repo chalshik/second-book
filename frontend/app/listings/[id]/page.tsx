@@ -6,9 +6,28 @@ import { api, Listing, UserProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useLang } from "@/lib/lang-context";
 
+const COVER_COLORS = ["#2d4a3e", "#1e3a5f", "#c9502a", "#4a3728", "#3a3028", "#283848", "#5a4e38", "#4a2828"];
+
+function getCoverColor(title: string): string {
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return COVER_COLORS[Math.abs(hash) % COVER_COLORS.length];
+}
+
 function formatPrice(price: number | null): { text: string; isFree: boolean } {
   if (price === null || price === undefined || price === 0) return { text: "", isFree: true };
   return { text: `${price} KGS`, isFree: false };
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days}d ago`;
+  return `${Math.floor(days / 30)}mo ago`;
 }
 
 export default function ListingDetailPage() {
@@ -21,6 +40,7 @@ export default function ListingDetailPage() {
   const [sellerProfile, setSellerProfile] = useState<UserProfile | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"desc" | "details">("desc");
 
   useEffect(() => {
     api.listings.get(id).then(setListing).catch(() => setListing(null)).finally(() => setLoading(false));
@@ -53,16 +73,17 @@ export default function ListingDetailPage() {
 
   if (loading) return (
     <div className="detail-page">
-      <Link href="/listings" className="detail-back">&larr; {d.back}</Link>
+      <div className="breadcrumb-bar">
+        <Link href="/">Home</Link> › <Link href="/listings">Books</Link> › ...
+      </div>
       <div className="detail-layout">
-        <div className="detail-card">
-          <div className="skeleton" style={{ height: 28, width: "55%", marginBottom: 12 }} />
-          <div className="skeleton" style={{ height: 16, width: "25%", marginBottom: 20 }} />
-          <div className="skeleton" style={{ height: 16, width: "70%" }} />
+        <div className="book-visual">
+          <div className="skeleton" style={{ height: 300, width: "100%", borderRadius: 4 }} />
         </div>
-        <div className="detail-sidebar-card">
-          <div className="skeleton" style={{ height: 32, width: "50%" }} />
-          <div className="skeleton" style={{ height: 16, width: "70%" }} />
+        <div className="detail-sidebar">
+          <div className="skeleton" style={{ height: 24, width: "40%", marginBottom: 12 }} />
+          <div className="skeleton" style={{ height: 32, width: "60%", marginBottom: 20 }} />
+          <div className="skeleton" style={{ height: 80, width: "100%" }} />
         </div>
       </div>
     </div>
@@ -70,7 +91,9 @@ export default function ListingDetailPage() {
 
   if (!listing) return (
     <div className="detail-page">
-      <Link href="/listings" className="detail-back">&larr; {d.back}</Link>
+      <div className="breadcrumb-bar">
+        <Link href="/">Home</Link> › <Link href="/listings">Books</Link>
+      </div>
       <div className="empty-state">
         <p className="empty-state-text">{d.notFound}</p>
         <Link href="/listings" className="btn btn-secondary">{d.back}</Link>
@@ -80,92 +103,155 @@ export default function ListingDetailPage() {
 
   const isOwner = user?.uid === listing.seller_id;
   const price = formatPrice(listing.price);
+  const coverColor = getCoverColor(listing.title);
+  const sellerInitial = listing.seller_name ? listing.seller_name.charAt(0).toUpperCase() : "?";
 
   return (
     <div className="detail-page">
-      <Link href="/listings" className="detail-back">&larr; {d.back}</Link>
+      {/* Breadcrumb */}
+      <div className="breadcrumb-bar">
+        <Link href="/">Home</Link> › <Link href="/listings">Books</Link> › {listing.title}
+      </div>
 
       <div className="detail-layout">
-        {/* Main content */}
-        <div className="detail-card">
-          <h1 className="detail-title">{listing.title}</h1>
-          {listing.author && <p className="detail-author">{listing.author}</p>}
-          <p className="detail-seller">{d.listedBy} {listing.seller_name}</p>
+        {/* Left: Book Visual + Tabs */}
+        <div className="book-visual">
+          <div className="main-cover" style={{ background: coverColor }}>
+            {listing.title}
+          </div>
 
-          {/* Badges */}
-          <div className="detail-badges">
-            {listing.condition && (
-              <span className="book-card-badge badge-condition">
-                {t.conditions[listing.condition] || listing.condition}
-              </span>
-            )}
-            {listing.is_sold && (
-              <span className="book-card-badge badge-sold">{d.sold}</span>
+          {/* Tabs */}
+          <div className="detail-tabs">
+            <button
+              className={`detail-tab ${activeTab === "desc" ? "active" : ""}`}
+              onClick={() => setActiveTab("desc")}
+            >
+              {d.description}
+            </button>
+            <button
+              className={`detail-tab ${activeTab === "details" ? "active" : ""}`}
+              onClick={() => setActiveTab("details")}
+            >
+              Book details
+            </button>
+          </div>
+
+          {activeTab === "desc" && (
+            <div className="detail-panel">
+              <p>{listing.description || d.noDescription}</p>
+            </div>
+          )}
+
+          {activeTab === "details" && (
+            <div className="detail-panel">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <tbody>
+                  {listing.author && (
+                    <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                      <td style={{ padding: "0.625rem 0", fontSize: "0.875rem", color: "var(--muted)", width: "40%" }}>Author</td>
+                      <td style={{ padding: "0.625rem 0", fontSize: "0.875rem" }}>{listing.author}</td>
+                    </tr>
+                  )}
+                  {listing.condition && (
+                    <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                      <td style={{ padding: "0.625rem 0", fontSize: "0.875rem", color: "var(--muted)", width: "40%" }}>Condition</td>
+                      <td style={{ padding: "0.625rem 0", fontSize: "0.875rem" }}>{t.conditions[listing.condition] || listing.condition}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Owner Actions */}
+          {isOwner && (
+            <div className="detail-actions">
+              <Link href={`/listings/${id}/edit`} className="btn btn-primary btn-sm">{d.edit}</Link>
+              {!listing.is_sold && (
+                <button onClick={handleSold} className="btn btn-secondary btn-sm">{d.markSold}</button>
+              )}
+              <button onClick={handleDelete} className="btn btn-danger btn-sm">{d.delete}</button>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Sidebar */}
+        <div className="detail-sidebar">
+          {/* Status */}
+          <div className="detail-status-row">
+            <span className={`status-pill ${listing.is_sold ? "sold" : ""}`}>
+              {listing.is_sold ? d.sold : "Available"}
+            </span>
+            {listing.created_at && (
+              <span className="detail-listed-date">Listed {relativeTime(listing.created_at)}</span>
             )}
           </div>
 
-          {/* Description */}
-          <div className="detail-section">
-            <div className="detail-section-label">{d.description}</div>
-            <div className={`detail-section-value ${!listing.description ? "muted" : ""}`}>
-              {listing.description || d.noDescription}
+          {/* Title & Author */}
+          <h1 className="detail-title-main">{listing.title}</h1>
+          {listing.author && <div className="detail-author-main">{listing.author}</div>}
+
+          {/* Price Block */}
+          <div className="price-block">
+            <div className={`price-main ${price.isFree ? "free" : ""}`}>
+              {price.isFree ? d.free : price.text}
+            </div>
+            {listing.condition && (
+              <div className="cond-row">
+                <span className="cond-label">Condition:</span>
+                <span className="cond-value">{t.conditions[listing.condition] || listing.condition}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Seller Card */}
+          <div className="seller-card">
+            <div className="seller-card-title">{d.seller}</div>
+            <div className="seller-info">
+              <div className="seller-avatar">{sellerInitial}</div>
+              <div>
+                <div className="seller-name">{listing.seller_name}</div>
+              </div>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="detail-actions">
+          {/* Contact */}
+          <div className="contact-block">
+            <div className="contact-title">{d.contactSeller}</div>
+            {!isOwner ? (
+              sellerProfile?.contact_info ? (
+                <div className="contact-row">
+                  <span style={{ fontSize: "1.1rem", width: 20, textAlign: "center" }}>📱</span>
+                  <div>
+                    <div className="contact-method">Contact</div>
+                    <div className="contact-value">{sellerProfile.contact_info}</div>
+                  </div>
+                </div>
+              ) : user ? (
+                <p style={{ fontSize: "0.85rem", color: "var(--muted)", fontStyle: "italic" }}>{d.noContact}</p>
+              ) : (
+                <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+                  <Link href="/auth/login" style={{ color: "var(--accent)" }}>{d.signIn}</Link>{" "}{d.signInToContact}
+                </p>
+              )
+            ) : (
+              <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>—</p>
+            )}
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="detail-cta-buttons">
             {!isOwner && (
-              <button onClick={toggleBookmark} className={`btn ${bookmarked ? "btn-secondary" : "btn-primary"}`}>
+              <button onClick={toggleBookmark} className={bookmarked ? "btn-save-listing" : "btn-interested"}>
                 {bookmarked ? d.removeBookmark : d.bookmark}
               </button>
             )}
-            {isOwner && (
-              <>
-                <Link href={`/listings/${id}/edit`} className="btn btn-primary">{d.edit}</Link>
-                {!listing.is_sold && (
-                  <button onClick={handleSold} className="btn btn-secondary">{d.markSold}</button>
-                )}
-                <button onClick={handleDelete} className="btn btn-danger">{d.delete}</button>
-              </>
+            {!isOwner && !user && (
+              <Link href="/auth/login" className="btn-interested" style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
+                {d.signIn}
+              </Link>
             )}
           </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="detail-sidebar-card">
-          <div>
-            <div className={`detail-price-tag ${price.isFree ? "free" : ""}`}>
-              {price.isFree ? d.free : price.text}
-            </div>
-          </div>
-
-          <div className="detail-sidebar-section">
-            <div className="detail-sidebar-label">{d.seller}</div>
-            <div className="detail-seller-name">{listing.seller_name}</div>
-          </div>
-
-          <div className="detail-sidebar-section">
-            <div className="detail-sidebar-label">{d.contactSeller}</div>
-            {!isOwner ? (
-              sellerProfile?.contact_info ? (
-                <div className="detail-contact">{sellerProfile.contact_info}</div>
-              ) : user ? (
-                <div className="detail-contact" style={{ fontStyle: "italic", color: "var(--text-muted)" }}>{d.noContact}</div>
-              ) : (
-                <div className="detail-contact">
-                  <Link href="/auth/login" style={{ color: "var(--accent)" }}>{d.signIn}</Link>{" "}{d.signInToContact}
-                </div>
-              )
-            ) : (
-              <div className="detail-contact" style={{ color: "var(--text-muted)" }}>—</div>
-            )}
-          </div>
-
-          {!isOwner && !user && (
-            <Link href="/auth/login" className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
-              {d.signIn}
-            </Link>
-          )}
         </div>
       </div>
     </div>

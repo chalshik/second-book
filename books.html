@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shelve — Browse Books</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --paper: #f5f2eb;
+    --cream: #ede9df;
+    --accent: #c9502a;
+    --muted: #8a8680;
+    --border: #ddd9d0;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 3rem;
+    background: rgba(245,242,235,0.95); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-family: 'Playfair Display', serif; font-size: 1.4rem; text-decoration: none; color: var(--ink); }
+  .logo span { color: var(--accent); }
+  .nav-right { display: flex; gap: 1rem; align-items: center; }
+  .btn-sm {
+    padding: 0.5rem 1.1rem; border-radius: 2px;
+    font-size: 0.825rem; font-weight: 500; text-decoration: none; cursor: pointer;
+    transition: all .2s; font-family: 'DM Sans', sans-serif; border: none;
+  }
+  .btn-outline { border: 1px solid var(--border) !important; background: transparent; color: var(--ink); }
+  .btn-outline:hover { border-color: var(--ink) !important; }
+  .btn-dark { background: var(--ink); color: var(--paper); }
+  .btn-dark:hover { background: var(--accent); }
+
+  /* SEARCH BAR */
+  .search-bar {
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 3rem;
+    display: flex; gap: 1rem; align-items: center;
+  }
+  .search-wrap {
+    flex: 1; position: relative;
+  }
+  .search-icon {
+    position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: 1rem; pointer-events: none;
+  }
+  .search-input {
+    width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border: 1px solid var(--border); border-radius: 2px;
+    background: var(--paper); font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; color: var(--ink); outline: none;
+    transition: border-color .2s;
+  }
+  .search-input:focus { border-color: var(--ink); }
+  .search-input::placeholder { color: var(--muted); }
+  .sort-select {
+    padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 2px;
+    background: var(--paper); font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; color: var(--ink); outline: none; cursor: pointer;
+    min-width: 160px;
+  }
+
+  /* LAYOUT */
+  .main { display: flex; min-height: calc(100vh - 130px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px; flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.5rem;
+    position: sticky; top: 130px; height: fit-content;
+  }
+  .filter-section { margin-bottom: 2rem; }
+  .filter-title {
+    font-size: 0.7rem; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 0.875rem;
+  }
+  .filter-options { display: flex; flex-direction: column; gap: 0.5rem; }
+  .filter-item {
+    display: flex; align-items: center; gap: 0.625rem;
+    cursor: pointer; padding: 0.25rem 0;
+  }
+  .filter-item input[type="checkbox"] {
+    width: 15px; height: 15px; accent-color: var(--ink); cursor: pointer;
+  }
+  .filter-item label { font-size: 0.875rem; cursor: pointer; }
+  .filter-item .count { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
+
+  .price-range { display: flex; flex-direction: column; gap: 0.75rem; }
+  .price-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .price-input {
+    padding: 0.5rem 0.75rem; border: 1px solid var(--border);
+    border-radius: 2px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem; color: var(--ink); outline: none;
+    background: var(--cream); width: 100%;
+    transition: border-color .2s;
+  }
+  .price-input:focus { border-color: var(--ink); }
+  .btn-apply {
+    padding: 0.5rem; background: var(--ink); color: var(--paper);
+    border: none; border-radius: 2px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem; cursor: pointer; transition: background .2s;
+  }
+  .btn-apply:hover { background: var(--accent); }
+
+  .condition-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .cond-tag {
+    padding: 0.35rem 0.75rem; border: 1px solid var(--border);
+    border-radius: 20px; font-size: 0.775rem; cursor: pointer;
+    transition: all .2s; user-select: none;
+  }
+  .cond-tag:hover { border-color: var(--ink); }
+  .cond-tag.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .clear-btn {
+    width: 100%; padding: 0.6rem; border: 1px solid var(--border);
+    background: none; border-radius: 2px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem; color: var(--muted); cursor: pointer;
+    transition: all .2s; margin-top: 0.5rem;
+  }
+  .clear-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* BOOKS AREA */
+  .books-area { flex: 1; padding: 2rem 2.5rem; }
+  .books-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .books-count { font-size: 0.875rem; color: var(--muted); }
+  .active-filters { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .filter-tag {
+    display: flex; align-items: center; gap: 0.35rem;
+    padding: 0.3rem 0.6rem; background: var(--cream);
+    border: 1px solid var(--border); border-radius: 20px;
+    font-size: 0.75rem; color: var(--ink);
+  }
+  .filter-tag button { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 0.9rem; line-height: 1; padding: 0; }
+
+  /* GRID */
+  .books-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.25rem; }
+  .book-card {
+    background: var(--paper); border: 1px solid var(--border); border-radius: 3px;
+    overflow: hidden; cursor: pointer;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+  }
+  .book-card:hover { transform: translateY(-5px); box-shadow: 0 10px 28px rgba(0,0,0,0.09); border-color: transparent; }
+  .book-cover {
+    height: 140px; display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.8rem; color: rgba(255,255,255,0.75);
+    text-align: center; padding: 1rem; line-height: 1.3;
+    position: relative;
+  }
+  .status-badge {
+    position: absolute; top: 0.5rem; right: 0.5rem;
+    padding: 0.2rem 0.5rem; border-radius: 2px;
+    font-size: 0.65rem; font-weight: 500; letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .status-available { background: rgba(255,255,255,0.9); color: #2d6a4f; }
+  .status-reserved { background: rgba(255,255,255,0.9); color: #c9502a; }
+  .book-info { padding: 0.875rem; }
+  .book-title { font-size: 0.875rem; font-weight: 500; margin-bottom: 0.2rem; line-height: 1.3; }
+  .book-author { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; }
+  .book-meta { display: flex; align-items: center; justify-content: space-between; }
+  .book-price { font-size: 0.9rem; font-weight: 500; color: var(--accent); }
+  .book-cond { font-size: 0.7rem; color: var(--muted); }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 4rem; color: var(--muted); }
+  .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+  /* PAGINATION */
+  .pagination { display: flex; gap: 0.5rem; justify-content: center; margin-top: 3rem; padding-bottom: 3rem; }
+  .page-btn {
+    width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 2px;
+    background: none; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; transition: all .2s;
+  }
+  .page-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .page-btn:hover:not(.active) { border-color: var(--ink); }
+
+  .view-toggle { display: flex; gap: 0.25rem; }
+  .view-btn {
+    width: 34px; height: 34px; border: 1px solid var(--border);
+    border-radius: 2px; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+  }
+  .view-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Shelve<span>.</span></a>
+  <div class="nav-right">
+    <a href="seller.html" class="btn-sm btn-outline">Sell a book</a>
+    <a href="login.html" class="btn-sm btn-dark">Account</a>
+  </div>
+</nav>
+
+<div class="search-bar">
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input class="search-input" type="text" placeholder="Search by title, author, ISBN…" id="searchInput" oninput="filterBooks()">
+  </div>
+  <select class="sort-select" onchange="sortBooks(this.value)">
+    <option value="">Sort: Newest first</option>
+    <option value="price-asc">Price: Low to High</option>
+    <option value="price-desc">Price: High to Low</option>
+    <option value="title">Title A–Z</option>
+  </select>
+</div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="filter-section">
+      <div class="filter-title">Category</div>
+      <div class="filter-options">
+        <div class="filter-item"><input type="checkbox" id="cat1" onchange="filterBooks()"><label for="cat1">Fiction</label><span class="count">48</span></div>
+        <div class="filter-item"><input type="checkbox" id="cat2" onchange="filterBooks()"><label for="cat2">Non-Fiction</label><span class="count">32</span></div>
+        <div class="filter-item"><input type="checkbox" id="cat3" onchange="filterBooks()"><label for="cat3">Science</label><span class="count">21</span></div>
+        <div class="filter-item"><input type="checkbox" id="cat4" onchange="filterBooks()"><label for="cat4">History</label><span class="count">19</span></div>
+        <div class="filter-item"><input type="checkbox" id="cat5" onchange="filterBooks()"><label for="cat5">Arts</label><span class="count">14</span></div>
+        <div class="filter-item"><input type="checkbox" id="cat6" onchange="filterBooks()"><label for="cat6">Self-Help</label><span class="count">27</span></div>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-title">Price Range</div>
+      <div class="price-range">
+        <div class="price-inputs">
+          <input class="price-input" type="number" placeholder="Min $" id="minPrice">
+          <input class="price-input" type="number" placeholder="Max $" id="maxPrice">
+        </div>
+        <button class="btn-apply" onclick="filterBooks()">Apply</button>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-title">Condition</div>
+      <div class="condition-tags">
+        <div class="cond-tag active" onclick="toggleCond(this)">All</div>
+        <div class="cond-tag" onclick="toggleCond(this)">Like New</div>
+        <div class="cond-tag" onclick="toggleCond(this)">Good</div>
+        <div class="cond-tag" onclick="toggleCond(this)">Fair</div>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-title">Availability</div>
+      <div class="filter-options">
+        <div class="filter-item"><input type="checkbox" id="av1" checked onchange="filterBooks()"><label for="av1">Available</label></div>
+        <div class="filter-item"><input type="checkbox" id="av2" onchange="filterBooks()"><label for="av2">Reserved</label></div>
+      </div>
+    </div>
+
+    <button class="clear-btn" onclick="clearFilters()">Clear all filters</button>
+  </aside>
+
+  <div class="books-area">
+    <div class="books-header">
+      <span class="books-count" id="resultsCount">Showing 12 books</span>
+      <div style="display:flex;gap:1rem;align-items:center">
+        <div class="active-filters" id="activeFilters"></div>
+        <div class="view-toggle">
+          <button class="view-btn active" title="Grid">⊞</button>
+          <button class="view-btn" title="List">☰</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="books-grid" id="booksGrid"></div>
+
+    <div class="pagination">
+      <button class="page-btn active">1</button>
+      <button class="page-btn">2</button>
+      <button class="page-btn">3</button>
+      <button class="page-btn">→</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BOOKS = [
+  { id:1, title:"Crime & Punishment", author:"Fyodor Dostoevsky", price:4.50, condition:"Good", category:"Fiction", color:"#2d4a3e", status:"available" },
+  { id:2, title:"Sapiens", author:"Yuval Noah Harari", price:6.00, condition:"Like New", category:"Non-Fiction", color:"#1e3a5f", status:"available" },
+  { id:3, title:"Dune", author:"Frank Herbert", price:5.00, condition:"Good", category:"Fiction", color:"#c9502a", status:"available" },
+  { id:4, title:"The Great Gatsby", author:"F. Scott Fitzgerald", price:3.50, condition:"Fair", category:"Fiction", color:"#4a3728", status:"reserved" },
+  { id:5, title:"A Brief History of Time", author:"Stephen Hawking", price:7.00, condition:"Like New", category:"Science", color:"#1a3a4a", status:"available" },
+  { id:6, title:"Meditations", author:"Marcus Aurelius", price:4.00, condition:"Good", category:"Self-Help", color:"#3a3028", status:"available" },
+  { id:7, title:"The Alchemist", author:"Paulo Coelho", price:3.00, condition:"Good", category:"Fiction", color:"#4a2828", status:"available" },
+  { id:8, title:"Atomic Habits", author:"James Clear", price:8.00, condition:"Like New", category:"Self-Help", color:"#283848", status:"available" },
+  { id:9, title:"1984", author:"George Orwell", price:4.00, condition:"Fair", category:"Fiction", color:"#282828", status:"available" },
+  { id:10, title:"The Catcher in the Rye", author:"J.D. Salinger", price:3.50, condition:"Good", category:"Fiction", color:"#4a3818", status:"reserved" },
+  { id:11, title:"The Selfish Gene", author:"Richard Dawkins", price:5.50, condition:"Good", category:"Science", color:"#284838", status:"available" },
+  { id:12, title:"Leonardo da Vinci", author:"Walter Isaacson", price:9.00, condition:"Like New", category:"Arts", color:"#483828", status:"available" },
+];
+
+let displayed = [...BOOKS];
+
+function renderBooks(books) {
+  const grid = document.getElementById('booksGrid');
+  document.getElementById('resultsCount').textContent = `Showing ${books.length} book${books.length!==1?'s':''}`;
+  if (!books.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📚</div><p>No books match your filters.</p></div>';
+    return;
+  }
+  grid.innerHTML = books.map(b => `
+    <div class="book-card" onclick="location.href='book-detail.html'">
+      <div class="book-cover" style="background:${b.color}">
+        <span class="status-badge status-${b.status}">${b.status==='available'?'Available':'Reserved'}</span>
+        ${b.title}
+      </div>
+      <div class="book-info">
+        <div class="book-title">${b.title}</div>
+        <div class="book-author">${b.author}</div>
+        <div class="book-meta">
+          <span class="book-price">$${b.price.toFixed(2)}</span>
+          <span class="book-cond">${b.condition}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterBooks() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let result = BOOKS.filter(b =>
+    b.title.toLowerCase().includes(q) ||
+    b.author.toLowerCase().includes(q) ||
+    b.category.toLowerCase().includes(q)
+  );
+  const min = parseFloat(document.getElementById('minPrice').value);
+  const max = parseFloat(document.getElementById('maxPrice').value);
+  if (!isNaN(min)) result = result.filter(b => b.price >= min);
+  if (!isNaN(max)) result = result.filter(b => b.price <= max);
+  renderBooks(result);
+}
+
+function sortBooks(val) {
+  let sorted = [...displayed];
+  if (val === 'price-asc') sorted.sort((a,b) => a.price - b.price);
+  if (val === 'price-desc') sorted.sort((a,b) => b.price - a.price);
+  if (val === 'title') sorted.sort((a,b) => a.title.localeCompare(b.title));
+  renderBooks(sorted);
+}
+
+function toggleCond(el) {
+  document.querySelectorAll('.cond-tag').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('minPrice').value = '';
+  document.getElementById('maxPrice').value = '';
+  document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+  document.querySelectorAll('.cond-tag').forEach((t,i) => t.classList.toggle('active', i===0));
+  renderBooks(BOOKS);
+}
+
+renderBooks(BOOKS);
+</script>
+</body>
+</html>

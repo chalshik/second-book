@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shelve — List a Book</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --paper: #f5f2eb;
+    --cream: #ede9df;
+    --accent: #c9502a;
+    --muted: #8a8680;
+    --border: #ddd9d0;
+    --success: #2d6a4f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); }
+
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 3rem; border-bottom: 1px solid var(--border);
+    background: var(--paper); position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Playfair Display', serif; font-size: 1.4rem; text-decoration: none; color: var(--ink); }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 1rem; align-items: center; }
+  .nav-link { text-decoration: none; font-size: 0.875rem; color: var(--muted); }
+  .nav-link:hover { color: var(--ink); }
+
+  .page-header {
+    padding: 3rem 3rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--cream);
+  }
+  .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; }
+  .breadcrumb a { color: var(--muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--accent); }
+  .page-title { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 0.4rem; }
+  .page-subtitle { font-size: 0.9rem; color: var(--muted); }
+
+  /* PROGRESS */
+  .progress-bar {
+    display: flex; align-items: center; gap: 0;
+    padding: 1.5rem 3rem; border-bottom: 1px solid var(--border);
+    background: var(--paper);
+  }
+  .step-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.8rem; color: var(--muted);
+  }
+  .step-item.active { color: var(--ink); font-weight: 500; }
+  .step-item.done { color: var(--success); }
+  .step-dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 500; flex-shrink: 0;
+  }
+  .step-item.active .step-dot { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  .step-item.done .step-dot { border-color: var(--success); background: var(--success); color: #fff; }
+  .step-line { flex: 1; height: 1px; background: var(--border); max-width: 80px; margin: 0 0.5rem; }
+
+  /* CONTENT */
+  .content {
+    max-width: 960px; margin: 0 auto;
+    padding: 3rem; display: grid; grid-template-columns: 1fr 320px; gap: 3rem;
+  }
+
+  /* FORM */
+  .form-section { margin-bottom: 2.5rem; }
+  .section-header { margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+  .section-title-sm { font-size: 0.9rem; font-weight: 500; }
+  .section-desc { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 0.4rem; }
+  .field.span2 { grid-column: 1 / -1; }
+  .field label {
+    font-size: 0.75rem; font-weight: 500; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .field label .req { color: var(--accent); margin-left: 2px; }
+  .field input, .field select, .field textarea {
+    padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 2px;
+    background: var(--cream); font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; color: var(--ink); outline: none;
+    transition: border-color .2s, background .2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--ink); background: var(--paper);
+  }
+  .field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+  .field textarea { resize: vertical; min-height: 100px; }
+
+  /* PHOTO UPLOAD */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 4px;
+    padding: 2.5rem; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: var(--cream);
+  }
+  .upload-zone:hover { border-color: var(--ink); background: var(--paper); }
+  .upload-zone.drag-over { border-color: var(--accent); background: rgba(201,80,42,0.04); }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+  .upload-title { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.25rem; }
+  .upload-hint { font-size: 0.775rem; color: var(--muted); }
+  .upload-hint strong { color: var(--accent); cursor: pointer; }
+
+  .photo-previews {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 1rem;
+  }
+  .photo-preview {
+    aspect-ratio: 1; border-radius: 3px; background: var(--cream);
+    border: 1px solid var(--border); overflow: hidden; position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-preview .remove {
+    position: absolute; top: 3px; right: 3px;
+    width: 18px; height: 18px; background: var(--ink);
+    color: var(--paper); border-radius: 50%; border: none;
+    cursor: pointer; font-size: 0.7rem; display: flex;
+    align-items: center; justify-content: center; opacity: 0;
+    transition: opacity .2s;
+  }
+  .photo-preview:hover .remove { opacity: 1; }
+  .photo-add {
+    aspect-ratio: 1; border: 1px dashed var(--border); border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--muted); font-size: 1.5rem;
+    transition: all .2s; background: var(--cream);
+  }
+  .photo-add:hover { border-color: var(--ink); color: var(--ink); background: var(--paper); }
+
+  /* CONDITION SELECTOR */
+  .condition-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+  .cond-option {
+    padding: 0.75rem 0.5rem; border: 1px solid var(--border); border-radius: 2px;
+    text-align: center; cursor: pointer; transition: all .2s;
+    background: var(--cream);
+  }
+  .cond-option:hover { border-color: var(--ink); }
+  .cond-option.selected { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .cond-option .cond-name { font-size: 0.8rem; font-weight: 500; }
+  .cond-option .cond-desc { font-size: 0.65rem; color: var(--muted); margin-top: 0.2rem; }
+  .cond-option.selected .cond-desc { color: rgba(255,255,255,0.6); }
+
+  /* SIDEBAR PREVIEW */
+  .sidebar-card {
+    background: var(--cream); border: 1px solid var(--border); border-radius: 4px;
+    overflow: hidden; position: sticky; top: 100px;
+  }
+  .preview-label {
+    padding: 0.75rem 1rem; border-bottom: 1px solid var(--border);
+    font-size: 0.75rem; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted);
+    background: var(--paper);
+  }
+  .preview-cover {
+    height: 180px; background: #2d4a3e;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif; color: rgba(255,255,255,0.7);
+    font-size: 1rem; text-align: center; padding: 1rem;
+    transition: background .3s;
+  }
+  .preview-body { padding: 1.25rem; }
+  .preview-title { font-size: 1rem; font-weight: 500; margin-bottom: 0.2rem; }
+  .preview-author { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem; }
+  .preview-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+  .preview-price { font-size: 1.2rem; font-weight: 500; color: var(--accent); }
+  .preview-badge {
+    font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 2px;
+    background: rgba(45,106,79,0.12); color: var(--success); font-weight: 500;
+  }
+  .preview-hint { font-size: 0.75rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 0.75rem; }
+
+  /* ACTIONS */
+  .form-actions {
+    display: flex; gap: 1rem; align-items: center;
+    padding-top: 1.5rem; border-top: 1px solid var(--border);
+  }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    padding: 0.875rem 2rem; border: none; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    font-weight: 500; cursor: pointer; transition: opacity .2s;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-secondary {
+    background: none; border: 1px solid var(--border); color: var(--ink);
+    padding: 0.875rem 1.5rem; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.875rem;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-secondary:hover { border-color: var(--ink); }
+  .save-draft { font-size: 0.8rem; color: var(--muted); text-decoration: none; cursor: pointer; }
+  .save-draft:hover { color: var(--accent); }
+
+  /* SUCCESS MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center; z-index: 200;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--paper); border-radius: 4px; padding: 3rem;
+    max-width: 420px; width: 90%; text-align: center;
+    animation: modalIn .3s ease;
+  }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+  .modal-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 0.5rem; }
+  .modal-body { font-size: 0.875rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.6; }
+  .modal-btns { display: flex; gap: 0.75rem; justify-content: center; }
+  .btn-modal { padding: 0.75rem 1.5rem; border-radius: 2px; font-family: 'DM Sans', sans-serif; font-size: 0.875rem; cursor: pointer; text-decoration: none; font-weight: 500; }
+  .btn-modal-primary { background: var(--accent); color: #fff; border: none; }
+  .btn-modal-secondary { background: none; border: 1px solid var(--border); color: var(--ink); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">Shelve<span>.</span></a>
+  <div class="nav-links">
+    <a href="books.html" class="nav-link">Browse</a>
+    <a href="login.html" class="nav-link">My listings</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="breadcrumb"><a href="index.html">Home</a> › List a book</div>
+  <div class="page-title">List a book for sale.</div>
+  <div class="page-subtitle">Fill in the details below. The more info you provide, the faster it sells.</div>
+</div>
+
+<div class="progress-bar">
+  <div class="step-item active"><div class="step-dot">1</div> Book details</div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-dot">2</div> Photos & condition</div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-dot">3</div> Pricing</div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-dot">4</div> Review & publish</div>
+</div>
+
+<div class="content">
+  <div>
+    <!-- BOOK INFO -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-title-sm">Book information</div>
+        <div class="section-desc">Basic details about the book you're selling.</div>
+      </div>
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Title <span class="req">*</span></label>
+          <input type="text" placeholder="e.g. Crime & Punishment" id="titleInput" oninput="updatePreview()">
+        </div>
+        <div class="field">
+          <label>Author <span class="req">*</span></label>
+          <input type="text" placeholder="e.g. Fyodor Dostoevsky" id="authorInput" oninput="updatePreview()">
+        </div>
+        <div class="field">
+          <label>ISBN</label>
+          <input type="text" placeholder="978-0-00-000000-0">
+        </div>
+        <div class="field">
+          <label>Category <span class="req">*</span></label>
+          <select id="catInput" onchange="updatePreview()">
+            <option value="">Select category</option>
+            <option>Fiction</option>
+            <option>Non-Fiction</option>
+            <option>Science</option>
+            <option>History</option>
+            <option>Arts</option>
+            <option>Self-Help</option>
+            <option>Children</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Language</label>
+          <select>
+            <option>English</option>
+            <option>Russian</option>
+            <option>Kyrgyz</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field span2">
+          <label>Description</label>
+          <textarea placeholder="Describe the book — plot summary, why you liked it, any notable markings…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHOTOS -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-title-sm">Photos</div>
+        <div class="section-desc">Add up to 4 photos. Good lighting helps sell faster.</div>
+      </div>
+      <div class="upload-zone" id="dropZone" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFiles(event)" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📷</div>
+        <div class="upload-title">Drag photos here</div>
+        <div class="upload-hint">or <strong>click to browse</strong> — JPG, PNG up to 5MB each</div>
+      </div>
+      <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">
+      <div class="photo-previews" id="photoPreviews">
+        <div class="photo-add" onclick="document.getElementById('fileInput').click()">+</div>
+      </div>
+    </div>
+
+    <!-- CONDITION -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-title-sm">Condition</div>
+        <div class="section-desc">Be honest — buyers appreciate accurate descriptions.</div>
+      </div>
+      <div class="condition-grid">
+        <div class="cond-option selected" onclick="selectCond(this)">
+          <div class="cond-name">Like New</div>
+          <div class="cond-desc">No marks</div>
+        </div>
+        <div class="cond-option" onclick="selectCond(this)">
+          <div class="cond-name">Good</div>
+          <div class="cond-desc">Minor wear</div>
+        </div>
+        <div class="cond-option" onclick="selectCond(this)">
+          <div class="cond-name">Fair</div>
+          <div class="cond-desc">Visible wear</div>
+        </div>
+        <div class="cond-option" onclick="selectCond(this)">
+          <div class="cond-name">Poor</div>
+          <div class="cond-desc">Heavy wear</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICING -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-title-sm">Pricing & availability</div>
+        <div class="section-desc">Set a fair price to attract buyers quickly.</div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Price (USD) <span class="req">*</span></label>
+          <input type="number" placeholder="0.00" min="0" step="0.5" id="priceInput" oninput="updatePreview()">
+        </div>
+        <div class="field">
+          <label>Exchange method</label>
+          <select>
+            <option>Meetup / pickup</option>
+            <option>Delivery</option>
+            <option>Either</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input type="text" placeholder="e.g. Bishkek, Chuy">
+        </div>
+        <div class="field">
+          <label>Contact preference</label>
+          <select>
+            <option>In-app message</option>
+            <option>Phone call</option>
+            <option>WhatsApp</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-primary" onclick="publishListing()">Publish listing</button>
+      <button class="btn-secondary">Save draft</button>
+      <span class="save-draft" onclick="location.href='books.html'">Cancel</span>
+    </div>
+  </div>
+
+  <!-- SIDEBAR PREVIEW -->
+  <div>
+    <div class="sidebar-card">
+      <div class="preview-label">Live preview</div>
+      <div class="preview-cover" id="previewCover">Your book title</div>
+      <div class="preview-body">
+        <div class="preview-title" id="previewTitle">Untitled book</div>
+        <div class="preview-author" id="previewAuthor">Author name</div>
+        <div class="preview-row">
+          <span class="preview-price" id="previewPrice">$—</span>
+          <span class="preview-badge">Available</span>
+        </div>
+        <div class="preview-hint">This is how buyers will see your listing in search results.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <div class="modal-icon">✓</div>
+    <div class="modal-title">Listing published!</div>
+    <div class="modal-body">Your book is now live and visible to buyers. You'll be notified when someone shows interest.</div>
+    <div class="modal-btns">
+      <a href="books.html" class="btn-modal btn-modal-primary">View listing</a>
+      <button class="btn-modal btn-modal-secondary" onclick="document.getElementById('successModal').classList.remove('show')">List another</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const coverColors = ['#2d4a3e','#1e3a5f','#4a3728','#3a3028','#4a2828','#283848','#284838','#483828'];
+  let colorIdx = 0;
+
+  function updatePreview() {
+    const title = document.getElementById('titleInput').value || 'Your book title';
+    const author = document.getElementById('authorInput').value || 'Author name';
+    const price = document.getElementById('priceInput').value;
+
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewAuthor').textContent = author;
+    document.getElementById('previewCover').textContent = title;
+    document.getElementById('previewPrice').textContent = price ? `$${parseFloat(price).toFixed(2)}` : '$—';
+
+    const cat = document.getElementById('catInput').value;
+    if (cat) document.getElementById('previewCover').style.background = coverColors[colorIdx++ % coverColors.length];
+  }
+
+  function selectCond(el) {
+    document.querySelectorAll('.cond-option').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function dragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+  function dragLeave() { document.getElementById('dropZone').classList.remove('drag-over'); }
+  function dropFiles(e) { e.preventDefault(); dragLeave(); handleFiles(e.dataTransfer.files); }
+
+  function handleFiles(files) {
+    const container = document.getElementById('photoPreviews');
+    Array.from(files).slice(0,4).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const div = document.createElement('div');
+        div.className = 'photo-preview';
+        div.innerHTML = `<img src="${e.target.result}"><button class="remove" onclick="this.parentNode.remove()">×</button>`;
+        container.insertBefore(div, container.querySelector('.photo-add'));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function publishListing() {
+    const title = document.getElementById('titleInput').value;
+    const price = document.getElementById('priceInput').value;
+    if (!title || !price) {
+      alert('Please fill in at least the title and price.');
+      return;
+    }
+    document.getElementById('successModal').classList.add('show');
+  }
+</script>
+</body>
+</html>

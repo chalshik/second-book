@@ -39,41 +39,79 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="form-page">
-      <Link href="/listings" className="detail-back">&larr; {t.detail.back}</Link>
-
-      <div className="form-card">
-        <div className="form-header">
-          <h2 className="form-title">{l.title}</h2>
-          <p className="form-sub">
-            {l.noAccount}{" "}
-            <Link href="/auth/register">{l.register}</Link>
-          </p>
+    <div className="auth-split">
+      {/* Left decorative panel */}
+      <div className="auth-panel-left">
+        <Link href="/" className="navbar-logo" style={{ color: "var(--paper)", position: "relative", zIndex: 1 }}>
+          Second Book<span className="navbar-logo-dot">.</span>
+        </Link>
+        <div className="auth-panel-quote">
+          <blockquote>&ldquo;A reader lives a thousand lives before he dies.&rdquo;</blockquote>
+          <cite>— George R.R. Martin</cite>
         </div>
+        <div className="auth-bg-books">
+          <div className="auth-bg-book" style={{ width: 30, height: 100, background: "#2d4a3e" }} />
+          <div className="auth-bg-book" style={{ width: 30, height: 140, background: "var(--accent)" }} />
+          <div className="auth-bg-book" style={{ width: 30, height: 80, background: "#4a3728" }} />
+          <div className="auth-bg-book" style={{ width: 30, height: 120, background: "#1e3a5f" }} />
+        </div>
+        <div className="auth-panel-bottom">&copy; 2025 Second Book</div>
+      </div>
 
-        <form onSubmit={handleLogin} className="form-stack">
-          <div className="form-field">
-            <label className="form-label">{l.emailLabel}</label>
-            <input className="form-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+      {/* Right form panel */}
+      <div className="auth-panel-right">
+        <div className="auth-box">
+          <div className="auth-tabs">
+            <button className="auth-tab active">Sign in</button>
+            <Link href="/auth/register" className="auth-tab">Create account</Link>
           </div>
-          <div className="form-field">
-            <label className="form-label">{l.passwordLabel}</label>
-            <input className="form-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
-          {error && <div className="form-error">{error}</div>}
-          <div className="form-actions">
-            <button type="submit" disabled={loading} className="btn btn-primary btn-lg" style={{ flex: 1 }}>
+
+          <div className="form-title" style={{ marginBottom: "0.5rem" }}>Welcome back.</div>
+          <div className="form-sub" style={{ marginBottom: "1.5rem" }}>Sign in to your account.</div>
+
+          <form onSubmit={handleLogin} className="form-stack">
+            <div className="form-field">
+              <label className="form-label">{l.emailLabel}</label>
+              <input
+                className="form-input"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label">{l.passwordLabel}</label>
+              <input
+                className="form-input"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {error && <div className="form-error">{error}</div>}
+
+            <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: "0.5rem" }}>
               {loading ? l.submitting : l.submit}
             </button>
-          </div>
-          <div style={{ position: "relative", textAlign: "center", margin: "0.25rem 0" }}>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--bg)", padding: "0 0.5rem", position: "relative", zIndex: 1 }}>or</span>
-            <div style={{ position: "absolute", top: "50%", left: 0, right: 0, borderTop: "1px solid var(--border-light)" }} />
-          </div>
-          <button type="button" onClick={handleGoogle} className="btn btn-secondary btn-lg" style={{ width: "100%", justifyContent: "center" }}>
-            {l.google}
-          </button>
-        </form>
+
+            <div className="auth-divider">or</div>
+
+            <button type="button" onClick={handleGoogle} className="btn btn-secondary" style={{ width: "100%", justifyContent: "center" }}>
+              {l.google}
+            </button>
+
+            <div className="form-footer">
+              {l.noAccount}{" "}
+              <Link href="/auth/register">{l.register}</Link>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -43,12 +43,17 @@ export default function ProfilePage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  const initial = (displayName || profile?.display_name || "?").charAt(0).toUpperCase();
+
   if (authLoading || !profile) return (
     <div className="profile-page">
       <div className="profile-top">
-        <div>
-          <div className="skeleton" style={{ height: 28, width: 200, marginBottom: 8 }} />
-          <div className="skeleton" style={{ height: 14, width: 150 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <div className="skeleton" style={{ width: 56, height: 56, borderRadius: "50%" }} />
+          <div>
+            <div className="skeleton" style={{ height: 28, width: 200, marginBottom: 8 }} />
+            <div className="skeleton" style={{ height: 14, width: 150 }} />
+          </div>
         </div>
         <div style={{ display: "flex", gap: "2rem" }}>
           <div className="skeleton" style={{ height: 40, width: 50 }} />
@@ -63,11 +68,14 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <div className="profile-top">
-        <div>
-          <h2 className="profile-name">{displayName || profile.display_name}</h2>
-          {profile.contact_info && (
-            <p className="profile-contact">{profile.contact_info}</p>
-          )}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div className="profile-avatar">{initial}</div>
+          <div>
+            <h2 className="profile-name">{displayName || profile.display_name}</h2>
+            {profile.contact_info && (
+              <p className="profile-contact">{profile.contact_info}</p>
+            )}
+          </div>
         </div>
         <div className="profile-stats">
           <div className="profile-stat">
@@ -94,10 +102,10 @@ export default function ProfilePage() {
               <input className="form-input" placeholder={p.contactPlaceholder} value={contactInfo} onChange={(e) => setContactInfo(e.target.value)} />
             </div>
             <div className="form-actions">
-              <button type="submit" disabled={saving} className="btn btn-primary">
+              <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
                 {saving ? p.saving : p.save}
               </button>
-              {saved && <span style={{ fontSize: 13, color: "var(--accent)" }}>{p.saved}</span>}
+              {saved && <span style={{ fontSize: "0.8rem", color: "var(--success)" }}>{p.saved}</span>}
             </div>
           </form>
         </div>
@@ -129,10 +137,10 @@ export default function ProfilePage() {
                   {tab === "listings" ? p.noListings : p.noBookmarks}
                 </p>
                 {tab === "listings" && (
-                  <Link href="/listings/new" className="btn btn-primary">{t.listings.sellBook}</Link>
+                  <Link href="/listings/new" className="btn btn-primary btn-sm">{t.listings.sellBook}</Link>
                 )}
                 {tab === "bookmarks" && (
-                  <Link href="/listings" className="btn btn-secondary">{t.nav.browse}</Link>
+                  <Link href="/listings" className="btn btn-secondary btn-sm">{t.nav.browse}</Link>
                 )}
               </div>
             ) : (

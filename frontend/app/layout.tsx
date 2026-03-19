@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Playfair_Display, EB_Garamond, DM_Mono } from "next/font/google";
+import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { LangProvider } from "@/lib/lang-context";
@@ -13,17 +13,10 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 });
 
-const garamond = EB_Garamond({
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
-  variable: "--font-garamond",
-});
-
-const dmMono = DM_Mono({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-dm-mono",
+  weight: ["300", "400", "500", "700"],
+  variable: "--font-dm-sans",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${garamond.variable} ${dmMono.variable}`}>
+    <html lang="en" className={`${playfair.variable} ${dmSans.variable}`}>
       <body suppressHydrationWarning style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <LangProvider>
           <AuthProvider>

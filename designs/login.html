@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shelve — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --paper: #f5f2eb;
+    --cream: #ede9df;
+    --accent: #c9502a;
+    --muted: #8a8680;
+    --border: #ddd9d0;
+    --error: #c0392b;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* LEFT PANEL */
+  .panel-left {
+    background: var(--ink);
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 3rem;
+    position: relative; overflow: hidden;
+  }
+  .panel-left::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 70%, rgba(201,80,42,0.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .logo { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--paper); }
+  .logo span { color: var(--accent); }
+  .panel-quote {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    padding: 2rem 0;
+  }
+  .panel-quote blockquote {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    color: var(--paper); line-height: 1.4;
+    margin-bottom: 1rem;
+  }
+  .panel-quote cite { font-size: 0.8rem; color: var(--muted); font-style: normal; letter-spacing: 0.06em; }
+  .panel-bottom { color: rgba(255,255,255,0.3); font-size: 0.75rem; }
+
+  /* BG BOOKS */
+  .bg-books {
+    position: absolute; bottom: 3rem; right: 2rem;
+    display: flex; gap: 0.5rem; align-items: flex-end; opacity: 0.15;
+  }
+  .bg-book { border-radius: 2px 4px 4px 2px; }
+
+  /* RIGHT PANEL */
+  .panel-right {
+    display: flex; align-items: center; justify-content: center;
+    padding: 3rem;
+  }
+  .auth-box { width: 100%; max-width: 400px; }
+
+  /* TABS */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 2.5rem; }
+  .tab {
+    flex: 1; padding: 0.875rem; text-align: center;
+    font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    color: var(--muted); border-bottom: 2px solid transparent;
+    transition: all .2s; margin-bottom: -1px;
+    background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+
+  /* FORMS */
+  .form { display: none; flex-direction: column; gap: 1.25rem; }
+  .form.active { display: flex; }
+
+  .form-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem; margin-bottom: 0.5rem;
+  }
+  .form-subtitle { font-size: 0.875rem; color: var(--muted); margin-bottom: 0.5rem; }
+
+  .field { display: flex; flex-direction: column; gap: 0.4rem; }
+  .field label { font-size: 0.8rem; font-weight: 500; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; }
+  .field input, .field select {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; color: var(--ink);
+    transition: border-color .2s, background .2s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--ink);
+    background: var(--paper);
+  }
+  .field input::placeholder { color: var(--muted); }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .role-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .role-btn {
+    padding: 0.75rem; border: 1px solid var(--border);
+    border-radius: 2px; text-align: center;
+    cursor: pointer; font-size: 0.875rem; font-weight: 500;
+    background: var(--cream); color: var(--muted);
+    transition: all .2s;
+  }
+  .role-btn.selected { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+
+  .btn-submit {
+    background: var(--accent); color: #fff;
+    padding: 0.875rem; border: none; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; font-weight: 500; cursor: pointer;
+    transition: opacity .2s; letter-spacing: 0.02em;
+    margin-top: 0.5rem;
+  }
+  .btn-submit:hover { opacity: 0.85; }
+
+  .divider {
+    display: flex; align-items: center; gap: 1rem;
+    color: var(--muted); font-size: 0.75rem;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .form-footer { text-align: center; font-size: 0.8rem; color: var(--muted); }
+  .form-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+
+  .forgot { text-align: right; }
+  .forgot a { font-size: 0.75rem; color: var(--muted); text-decoration: none; }
+  .forgot a:hover { color: var(--accent); }
+
+  @keyframes slideIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .form.active { animation: slideIn .3s ease; }
+</style>
+</head>
+<body>
+
+<div class="panel-left">
+  <a href="index.html" class="logo">Shelve<span>.</span></a>
+  <div class="panel-quote">
+    <blockquote>"A reader lives a thousand lives before he dies."</blockquote>
+    <cite>— George R.R. Martin</cite>
+  </div>
+  <div class="bg-books">
+    <div class="bg-book" style="width:30px;height:100px;background:#2d4a3e"></div>
+    <div class="bg-book" style="width:30px;height:140px;background:var(--accent)"></div>
+    <div class="bg-book" style="width:30px;height:80px;background:#4a3728"></div>
+    <div class="bg-book" style="width:30px;height:120px;background:#1e3a5f"></div>
+  </div>
+  <div class="panel-bottom">© 2025 Shelve</div>
+</div>
+
+<div class="panel-right">
+  <div class="auth-box">
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('login')">Sign in</button>
+      <button class="tab" onclick="showTab('register')">Create account</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="form active" id="login">
+      <div>
+        <div class="form-title">Welcome back.</div>
+        <div class="form-subtitle">Sign in to your Shelve account.</div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="••••••••">
+      </div>
+      <div class="forgot"><a href="#">Forgot password?</a></div>
+      <button class="btn-submit" onclick="location.href='books.html'">Sign in</button>
+      <div class="form-footer">
+        No account? <a href="#" onclick="showTab('register')">Register free</a>
+      </div>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="form" id="register">
+      <div>
+        <div class="form-title">Join Shelve.</div>
+        <div class="form-subtitle">Create your free account today.</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>First name</label>
+          <input type="text" placeholder="Amir">
+        </div>
+        <div class="field">
+          <label>Last name</label>
+          <input type="text" placeholder="Karimov">
+        </div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="8+ characters">
+      </div>
+      <div class="field">
+        <label>I want to</label>
+        <div class="role-toggle">
+          <div class="role-btn selected" id="role-buyer" onclick="selectRole('buyer')">Buy books</div>
+          <div class="role-btn" id="role-seller" onclick="selectRole('seller')">Sell books</div>
+        </div>
+      </div>
+      <button class="btn-submit" onclick="location.href='books.html'">Create account</button>
+      <div class="form-footer">
+        Already have an account? <a href="#" onclick="showTab('login')">Sign in</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Auto-switch tab if redirected from register.html
+  if (sessionStorage.getItem('authTab') === 'register') {
+    sessionStorage.removeItem('authTab');
+    setTimeout(() => showTab('register'), 50);
+  }
+
+  function showTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'?0:1)===i));
+    document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+  }
+  function selectRole(role) {
+    document.getElementById('role-buyer').classList.toggle('selected', role==='buyer');
+    document.getElementById('role-seller').classList.toggle('selected', role==='seller');
+  }
+</script>
+</body>
+</html>

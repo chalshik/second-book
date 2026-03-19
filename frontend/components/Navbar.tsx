@@ -10,9 +10,13 @@ export function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        <Link href="/" className="navbar-logo">Second Book</Link>
+        <Link href="/" className="navbar-logo">
+          Second Book<span className="navbar-logo-dot">.</span>
+        </Link>
 
         <div className="navbar-right">
+          <Link href="/listings" className="navbar-text-btn">Browse</Link>
+
           {!loading && user && (
             <Link href="/listings/new" className="navbar-sell">
               + {t.nav.sell}
@@ -36,7 +40,7 @@ export function Navbar() {
               ) : (
                 <>
                   <Link href="/auth/login" className="navbar-text-btn">{t.nav.signIn}</Link>
-                  <Link href="/auth/register" className="navbar-text-btn">{t.nav.register}</Link>
+                  <Link href="/auth/register" className="btn-nav">{t.nav.register}</Link>
                 </>
               )}
             </>
