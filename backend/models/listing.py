@@ -8,6 +8,8 @@ class ListingCreate(BaseModel):
     price: Optional[float] = None
     condition: Optional[str] = None
     description: Optional[str] = None
+    genre: Optional[str] = None
+    discount_percent: Optional[int] = None
 
 
 class ListingUpdate(BaseModel):
@@ -16,3 +18,5 @@ class ListingUpdate(BaseModel):
     price: Optional[float] = None
     condition: Optional[str] = None
     description: Optional[str] = None
+    genre: Optional[str] = None
+    discount_percent: Optional[int] = None
