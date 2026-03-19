@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from firebase_admin import firestore
 from models.listing import ListingCreate, ListingUpdate
 from dependencies.auth import get_current_user
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -13,7 +13,15 @@ def get_db():
 
 
 @router.get("")
-def list_listings(search: str = "", limit: int = 50, offset: int = 0):
+def list_listings(
+    search: str = "",
+    condition: Optional[str] = Query(None),
+    genre: Optional[str] = Query(None),
+    price_min: Optional[float] = Query(None),
+    price_max: Optional[float] = Query(None),
+    limit: int = 50,
+    offset: int = 0,
+):
     db = get_db()
     query = db.collection("listings").order_by(
         "created_at", direction=firestore.Query.DESCENDING
@@ -22,8 +30,27 @@ def list_listings(search: str = "", limit: int = 50, offset: int = 0):
     for doc in query.stream():
         data = doc.to_dict()
         data["id"] = doc.id
-        if search and search.lower() not in data.get("title", "").lower():
+        # search filter
+        if search:
+            search_lower = search.lower()
+            title_match = search_lower in data.get("title", "").lower()
+            author_match = search_lower in data.get("author", "").lower()
+            if not title_match and not author_match:
+                continue
+        # condition filter
+        if condition and data.get("condition") != condition:
             continue
+        # genre filter
+        if genre and data.get("genre") != genre:
+            continue
+        # price filters
+        listing_price = data.get("price")
+        if price_min is not None:
+            if listing_price is None or listing_price < price_min:
+                continue
+        if price_max is not None:
+            if listing_price is None or listing_price > price_max:
+                continue
         results.append(data)
     return results[offset : offset + limit]
 
@@ -59,6 +86,8 @@ def create_listing(
         "price": body.price,
         "condition": body.condition or "good",
         "description": body.description or "",
+        "genre": body.genre or "",
+        "discount_percent": body.discount_percent or 0,
         "seller_id": current_user["uid"],
         "seller_name": seller_name,
         "is_sold": False,
@@ -96,6 +125,10 @@ def update_listing(
         updates["condition"] = body.condition
     if body.description is not None:
         updates["description"] = body.description
+    if body.genre is not None:
+        updates["genre"] = body.genre
+    if body.discount_percent is not None:
+        updates["discount_percent"] = body.discount_percent
     doc_ref.update(updates)
     data.update(updates)
     data["id"] = listing_id

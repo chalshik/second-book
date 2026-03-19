@@ -19,6 +19,8 @@ export type Listing = {
   price: number | null;
   condition: string;
   description: string;
+  genre: string;
+  discount_percent: number;
   seller_id: string;
   seller_name: string;
   is_sold: boolean;
@@ -32,6 +34,8 @@ export type ListingCreateData = {
   price?: number | null;
   condition?: string;
   description?: string;
+  genre?: string;
+  discount_percent?: number;
 };
 
 export type ListingUpdateData = {
@@ -40,6 +44,16 @@ export type ListingUpdateData = {
   price?: number | null;
   condition?: string;
   description?: string;
+  genre?: string;
+  discount_percent?: number;
+};
+
+export type ListingFilters = {
+  search?: string;
+  condition?: string;
+  genre?: string;
+  price_min?: number;
+  price_max?: number;
 };
 
 export type UserProfile = {
@@ -51,9 +65,16 @@ export type UserProfile = {
 
 export const api = {
   listings: {
-    list: async (search = ""): Promise<Listing[]> => {
-      const params = search ? `?search=${encodeURIComponent(search)}` : "";
-      const res = await fetch(`${BASE}/listings${params}`);
+    list: async (filters: ListingFilters = {}): Promise<Listing[]> => {
+      const params = new URLSearchParams();
+      if (filters.search) params.set("search", filters.search);
+      if (filters.condition) params.set("condition", filters.condition);
+      if (filters.genre) params.set("genre", filters.genre);
+      if (filters.price_min !== undefined) params.set("price_min", String(filters.price_min));
+      if (filters.price_max !== undefined) params.set("price_max", String(filters.price_max));
+      const qs = params.toString();
+      const url = qs ? `${BASE}/listings?${qs}` : `${BASE}/listings`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch listings");
       return res.json();
     },

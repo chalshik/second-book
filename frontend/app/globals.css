@@ -637,6 +637,99 @@ a { color: inherit; text-decoration: none; }
   padding: 0 1rem 0.75rem;
 }
 
+.book-card-genre {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+.discount-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius);
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+}
+
+.owner-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius);
+  letter-spacing: 0.04em;
+}
+
+.price-original {
+  text-decoration: line-through;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+/* ── FILTER ROW ── */
+.filter-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.filter-select {
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.filter-select:focus { border-color: var(--ink); }
+
+.filter-input {
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  color: var(--ink);
+  outline: none;
+  width: 100px;
+  transition: border-color 0.2s;
+}
+
+.filter-input:focus { border-color: var(--ink); }
+.filter-input::placeholder { color: var(--muted); }
+
+.filter-clear {
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.2s;
+  padding: 0.5rem 0;
+}
+
+.filter-clear:hover { color: var(--accent); }
+
 /* ── CARD SKELETON ── */
 .card-skeleton {
   background: var(--cream);

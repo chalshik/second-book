@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { Listing } from "@/lib/api";
 import { useLang } from "@/lib/lang-context";
+import { useAuth } from "@/lib/auth-context";
 
 const COVER_COLORS = ["#2d4a3e", "#1e3a5f", "#c9502a", "#4a3728", "#3a3028", "#283848", "#5a4e38", "#4a2828"];
 
@@ -22,29 +23,53 @@ function relativeTime(iso: string): string {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-function formatPrice(price: number | null): { text: string; isFree: boolean } {
-  if (price === null || price === undefined || price === 0) return { text: "", isFree: true };
-  return { text: `${price} KGS`, isFree: false };
+export function getDiscountedPrice(price: number | null, discountPercent: number): number | null {
+  if (price === null || price === undefined) return null;
+  if (!discountPercent || discountPercent <= 0) return price;
+  return Math.round(price * (1 - discountPercent / 100));
 }
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const { t } = useLang();
-  const price = formatPrice(listing.price);
+  const { user } = useAuth();
   const coverColor = getCoverColor(listing.title);
+  const isOwner = user?.uid === listing.seller_id;
+  const discount = listing.discount_percent || 0;
+  const finalPrice = getDiscountedPrice(listing.price, discount);
+  const hasPaid = listing.price !== null && listing.price !== undefined && listing.price > 0;
+  const hasDiscount = hasPaid && discount > 0;
 
   return (
     <Link href={`/listings/${listing.id}`} className="book-card">
-      <div className="book-card-cover" style={{ background: coverColor }}>
+      <div className="book-card-cover" style={{ background: coverColor, position: "relative" }}>
         {listing.title}
+        {hasDiscount && (
+          <span className="discount-badge">-{discount}%</span>
+        )}
+        {isOwner && (
+          <span className="owner-badge">Yours</span>
+        )}
       </div>
       <div className="book-card-info">
         <div className="book-card-title">{listing.title}</div>
         {listing.author && (
           <div className="book-card-author">{listing.author}</div>
         )}
+        {listing.genre && (
+          <div className="book-card-genre">{listing.genre}</div>
+        )}
         <div className="book-card-bottom">
-          <span className={`book-card-price ${price.isFree ? "free" : ""}`}>
-            {price.isFree ? t.listings.free : price.text}
+          <span className={`book-card-price ${!hasPaid ? "free" : ""}`}>
+            {!hasPaid ? (
+              t.listings.free
+            ) : hasDiscount ? (
+              <>
+                <span className="price-original">{listing.price} KGS</span>
+                {" "}{finalPrice} KGS
+              </>
+            ) : (
+              `${listing.price} KGS`
+            )}
           </span>
           <div className="book-card-meta">
             {listing.condition && listing.condition !== "good" && (
