@@ -1116,9 +1116,12 @@ a { color: inherit; text-decoration: none; }
 
 /* ── AUTH SPLIT LAYOUT ── */
 .auth-split {
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  background: var(--paper);
 }
 
 .auth-panel-left {
