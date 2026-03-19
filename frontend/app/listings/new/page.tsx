@@ -13,6 +13,11 @@ const CONDITIONS = [
   { value: "poor", label: "Poor", desc: "Heavy wear" },
 ] as const;
 
+const GENRES = [
+  "Fiction", "Non-Fiction", "Science", "History", "Arts",
+  "Self-Help", "Children", "Classic", "Fantasy", "Biography", "Other",
+];
+
 const COVER_COLORS = ["#2d4a3e", "#1e3a5f", "#c9502a", "#4a3728", "#3a3028", "#283848", "#5a4e38"];
 
 export default function NewListingPage() {
@@ -25,6 +30,8 @@ export default function NewListingPage() {
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("good");
   const [description, setDescription] = useState("");
+  const [genre, setGenre] = useState("");
+  const [discount, setDiscount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [coverColor, setCoverColor] = useState(COVER_COLORS[0]);
@@ -55,6 +62,8 @@ export default function NewListingPage() {
         price: price ? parseFloat(price) : null,
         condition,
         description: description.trim() || undefined,
+        genre: genre || undefined,
+        discount_percent: discount ? parseInt(discount) : undefined,
       });
       router.push(`/listings/${listing.id}`);
     } catch {
@@ -63,7 +72,14 @@ export default function NewListingPage() {
     }
   }
 
-  const previewPrice = price ? `${parseFloat(price)} KGS` : "Free";
+  const numPrice = price ? parseFloat(price) : 0;
+  const numDiscount = discount ? parseInt(discount) : 0;
+  const discountedPrice = numPrice && numDiscount > 0
+    ? Math.round(numPrice * (1 - numDiscount / 100))
+    : numPrice;
+  const previewPrice = numPrice
+    ? (numDiscount > 0 ? `${discountedPrice} KGS` : `${numPrice} KGS`)
+    : "Free";
 
   return (
     <div className="listing-form-page">
@@ -121,16 +137,17 @@ export default function NewListingPage() {
                   />
                 </div>
                 <div className="form-field">
-                  <label className="form-label">{n.priceLabel} (KGS)</label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder={n.pricePlaceholder}
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                  />
+                  <label className="form-label">Genre</label>
+                  <select
+                    className="form-select"
+                    value={genre}
+                    onChange={(e) => setGenre(e.target.value)}
+                  >
+                    <option value="">Select genre</option>
+                    {GENRES.map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-field field-span2">
                   <label className="form-label">{n.descriptionLabel}</label>
@@ -165,6 +182,41 @@ export default function NewListingPage() {
               </div>
             </div>
 
+            {/* Pricing */}
+            <div className="form-section">
+              <div className="section-header-form">
+                <div className="section-title-sm">Pricing</div>
+                <div className="section-desc">Set a fair price to attract buyers quickly.</div>
+              </div>
+              <div className="form-grid">
+                <div className="form-field">
+                  <label className="form-label">{n.priceLabel} (KGS)</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder={n.pricePlaceholder}
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Discount (%)</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    max="99"
+                    step="1"
+                    placeholder="0"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
             {error && <div className="form-error" style={{ marginBottom: "1rem" }}>{error}</div>}
 
             {/* Actions */}
@@ -187,14 +239,26 @@ export default function NewListingPage() {
         <div>
           <div className="sidebar-preview">
             <div className="preview-label">Live preview</div>
-            <div className="preview-cover" style={{ background: coverColor }}>
+            <div className="preview-cover" style={{ background: coverColor, position: "relative" }}>
               {title || "Your book title"}
+              {numDiscount > 0 && numPrice > 0 && (
+                <span className="discount-badge" style={{ position: "absolute", top: "0.5rem", right: "0.5rem" }}>
+                  -{numDiscount}%
+                </span>
+              )}
             </div>
             <div className="preview-body">
               <div className="preview-title">{title || "Untitled book"}</div>
               <div className="preview-author">{author || "Author name"}</div>
+              {genre && <div style={{ fontSize: "0.7rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.5rem" }}>{genre}</div>}
               <div className="preview-row">
-                <span className="preview-price">{previewPrice}</span>
+                <span className="preview-price">
+                  {numPrice > 0 && numDiscount > 0 ? (
+                    <><span className="price-original">{numPrice} KGS</span> {discountedPrice} KGS</>
+                  ) : (
+                    previewPrice
+                  )}
+                </span>
                 <span className="preview-badge">Available</span>
               </div>
               <div className="preview-hint">This is how buyers will see your listing in search results.</div>
