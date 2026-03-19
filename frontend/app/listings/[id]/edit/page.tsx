@@ -13,6 +13,11 @@ const CONDITIONS = [
   { value: "poor", label: "Poor", desc: "Heavy wear" },
 ] as const;
 
+const GENRES = [
+  "Fiction", "Non-Fiction", "Science", "History", "Arts",
+  "Self-Help", "Children", "Classic", "Fantasy", "Biography", "Other",
+];
+
 const COVER_COLORS = ["#2d4a3e", "#1e3a5f", "#c9502a", "#4a3728", "#3a3028", "#283848", "#5a4e38"];
 
 export default function EditListingPage() {
@@ -26,6 +31,8 @@ export default function EditListingPage() {
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("good");
   const [description, setDescription] = useState("");
+  const [genre, setGenre] = useState("");
+  const [discount, setDiscount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
@@ -38,6 +45,8 @@ export default function EditListingPage() {
       setPrice(l.price ? String(l.price) : "");
       setCondition(l.condition || "good");
       setDescription(l.description || "");
+      setGenre(l.genre || "");
+      setDiscount(l.discount_percent ? String(l.discount_percent) : "");
       setPageLoading(false);
     });
   }, [id]);
@@ -67,6 +76,8 @@ export default function EditListingPage() {
         price: price ? parseFloat(price) : null,
         condition,
         description: description.trim(),
+        genre: genre || undefined,
+        discount_percent: discount ? parseInt(discount) : 0,
       });
       router.push(`/listings/${id}`);
     } catch {
@@ -75,7 +86,14 @@ export default function EditListingPage() {
     }
   }
 
-  const previewPrice = price ? `${parseFloat(price)} KGS` : "Free";
+  const numPrice = price ? parseFloat(price) : 0;
+  const numDiscount = discount ? parseInt(discount) : 0;
+  const discountedPrice = numPrice && numDiscount > 0
+    ? Math.round(numPrice * (1 - numDiscount / 100))
+    : numPrice;
+  const previewPrice = numPrice
+    ? (numDiscount > 0 ? `${discountedPrice} KGS` : `${numPrice} KGS`)
+    : "Free";
 
   return (
     <div className="listing-form-page">
@@ -106,8 +124,17 @@ export default function EditListingPage() {
                   <input className="form-input" value={author} onChange={(ev) => setAuthor(ev.target.value)} />
                 </div>
                 <div className="form-field">
-                  <label className="form-label">{e.priceLabel} (KGS)</label>
-                  <input className="form-input" type="number" min="0" step="1" value={price} onChange={(ev) => setPrice(ev.target.value)} />
+                  <label className="form-label">Genre</label>
+                  <select
+                    className="form-select"
+                    value={genre}
+                    onChange={(ev) => setGenre(ev.target.value)}
+                  >
+                    <option value="">Select genre</option>
+                    {GENRES.map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-field field-span2">
                   <label className="form-label">{e.descriptionLabel}</label>
@@ -135,6 +162,23 @@ export default function EditListingPage() {
               </div>
             </div>
 
+            {/* Pricing */}
+            <div className="form-section">
+              <div className="section-header-form">
+                <div className="section-title-sm">Pricing</div>
+              </div>
+              <div className="form-grid">
+                <div className="form-field">
+                  <label className="form-label">{e.priceLabel} (KGS)</label>
+                  <input className="form-input" type="number" min="0" step="1" value={price} onChange={(ev) => setPrice(ev.target.value)} />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Discount (%)</label>
+                  <input className="form-input" type="number" min="0" max="99" step="1" placeholder="0" value={discount} onChange={(ev) => setDiscount(ev.target.value)} />
+                </div>
+              </div>
+            </div>
+
             {error && <div className="form-error" style={{ marginBottom: "1rem" }}>{error}</div>}
 
             <div style={{ display: "flex", gap: "1rem", alignItems: "center", paddingTop: "1.5rem", borderTop: "1px solid var(--border)" }}>
@@ -152,14 +196,26 @@ export default function EditListingPage() {
         <div>
           <div className="sidebar-preview">
             <div className="preview-label">Live preview</div>
-            <div className="preview-cover" style={{ background: coverColor }}>
+            <div className="preview-cover" style={{ background: coverColor, position: "relative" }}>
               {title || "Your book title"}
+              {numDiscount > 0 && numPrice > 0 && (
+                <span className="discount-badge" style={{ position: "absolute", top: "0.5rem", right: "0.5rem" }}>
+                  -{numDiscount}%
+                </span>
+              )}
             </div>
             <div className="preview-body">
               <div className="preview-title">{title || "Untitled book"}</div>
               <div className="preview-author">{author || "Author name"}</div>
+              {genre && <div style={{ fontSize: "0.7rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.5rem" }}>{genre}</div>}
               <div className="preview-row">
-                <span className="preview-price">{previewPrice}</span>
+                <span className="preview-price">
+                  {numPrice > 0 && numDiscount > 0 ? (
+                    <><span className="price-original">{numPrice} KGS</span> {discountedPrice} KGS</>
+                  ) : (
+                    previewPrice
+                  )}
+                </span>
                 <span className="preview-badge">Available</span>
               </div>
             </div>
