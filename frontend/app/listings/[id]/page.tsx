@@ -4,43 +4,38 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, Listing, UserProfile } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  BookOpen,
-  Pencil,
-  Trash2,
-  CheckCircle,
-  Bookmark,
-} from "lucide-react";
+import { useLang } from "@/lib/lang-context";
+
+function formatPrice(price: number | null): { text: string; isFree: boolean } {
+  if (price === null || price === undefined || price === 0) return { text: "", isFree: true };
+  return { text: `${price} KGS`, isFree: false };
+}
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { t } = useLang();
+  const d = t.detail;
   const router = useRouter();
   const [listing, setListing] = useState<Listing | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [sellerProfile, setSellerProfile] = useState<UserProfile | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.listings
-      .get(id)
-      .then(setListing)
-      .finally(() => setLoading(false));
+    api.listings.get(id).then(setListing).catch(() => setListing(null)).finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
     if (!user) return;
     api.users.me().then((u) => {
-      setProfile(u);
+      setSellerProfile(u);
       setBookmarked(u.bookmarks.includes(id));
     });
   }, [user, id]);
 
   async function handleDelete() {
-    if (!confirm("Delete this listing?")) return;
+    if (!confirm(d.deleteConfirm)) return;
     await api.listings.delete(id);
     router.push("/listings");
   }
@@ -51,93 +46,128 @@ export default function ListingDetailPage() {
   }
 
   async function toggleBookmark() {
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
-    if (bookmarked) {
-      await api.users.removeBookmark(id);
-      setBookmarked(false);
-    } else {
-      await api.users.addBookmark(id);
-      setBookmarked(true);
-    }
+    if (!user) { router.push("/auth/login"); return; }
+    if (bookmarked) { await api.users.removeBookmark(id); setBookmarked(false); }
+    else { await api.users.addBookmark(id); setBookmarked(true); }
   }
 
-  if (loading)
-    return <div className="text-center py-12 text-slate-500">Loading...</div>;
-  if (!listing)
-    return (
-      <div className="text-center py-12 text-slate-500">
-        Listing not found.
+  if (loading) return (
+    <div className="detail-page">
+      <Link href="/listings" className="detail-back">&larr; {d.back}</Link>
+      <div className="detail-layout">
+        <div className="detail-card">
+          <div className="skeleton" style={{ height: 28, width: "55%", marginBottom: 12 }} />
+          <div className="skeleton" style={{ height: 16, width: "25%", marginBottom: 20 }} />
+          <div className="skeleton" style={{ height: 16, width: "70%" }} />
+        </div>
+        <div className="detail-sidebar-card">
+          <div className="skeleton" style={{ height: 32, width: "50%" }} />
+          <div className="skeleton" style={{ height: 16, width: "70%" }} />
+        </div>
       </div>
-    );
+    </div>
+  );
+
+  if (!listing) return (
+    <div className="detail-page">
+      <Link href="/listings" className="detail-back">&larr; {d.back}</Link>
+      <div className="empty-state">
+        <p className="empty-state-text">{d.notFound}</p>
+        <Link href="/listings" className="btn btn-secondary">{d.back}</Link>
+      </div>
+    </div>
+  );
 
   const isOwner = user?.uid === listing.seller_id;
+  const price = formatPrice(listing.price);
 
   return (
-    <div className="max-w-lg mx-auto flex flex-col gap-6">
-      <Card>
-        <CardContent className="p-6 flex flex-col gap-4">
-          <div className="bg-slate-100 rounded-md h-48 flex items-center justify-center">
-            <BookOpen size={56} className="text-slate-400" />
-          </div>
-          <div className="flex items-start justify-between gap-2">
-            <h1 className="text-xl font-bold text-slate-900">
-              {listing.title}
-            </h1>
+    <div className="detail-page">
+      <Link href="/listings" className="detail-back">&larr; {d.back}</Link>
+
+      <div className="detail-layout">
+        {/* Main content */}
+        <div className="detail-card">
+          <h1 className="detail-title">{listing.title}</h1>
+          {listing.author && <p className="detail-author">{listing.author}</p>}
+          <p className="detail-seller">{d.listedBy} {listing.seller_name}</p>
+
+          {/* Badges */}
+          <div className="detail-badges">
+            {listing.condition && (
+              <span className="book-card-badge badge-condition">
+                {t.conditions[listing.condition] || listing.condition}
+              </span>
+            )}
             {listing.is_sold && (
-              <Badge variant="secondary">Sold</Badge>
+              <span className="book-card-badge badge-sold">{d.sold}</span>
             )}
           </div>
-          <p className="text-sm text-slate-500">
-            Listed by{" "}
-            <span className="font-medium text-slate-700">
-              {listing.seller_name}
-            </span>
-          </p>
 
-          {!isOwner && profile?.contact_info && (
-            <div className="border border-slate-200 rounded-md p-3 text-sm">
-              <p className="text-slate-500 mb-1 text-xs">Contact seller</p>
-              <p className="font-medium text-slate-900">
-                {profile.contact_info}
-              </p>
+          {/* Description */}
+          <div className="detail-section">
+            <div className="detail-section-label">{d.description}</div>
+            <div className={`detail-section-value ${!listing.description ? "muted" : ""}`}>
+              {listing.description || d.noDescription}
             </div>
-          )}
+          </div>
 
-          <div className="flex gap-2 flex-wrap">
+          {/* Actions */}
+          <div className="detail-actions">
             {!isOwner && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleBookmark}
-                className={bookmarked ? "text-slate-900" : "text-slate-400"}
-              >
-                <Bookmark size={14} className="mr-1" />
-                {bookmarked ? "Bookmarked" : "Bookmark"}
-              </Button>
+              <button onClick={toggleBookmark} className={`btn ${bookmarked ? "btn-secondary" : "btn-primary"}`}>
+                {bookmarked ? d.removeBookmark : d.bookmark}
+              </button>
             )}
             {isOwner && (
               <>
-                <Link href={`/listings/${id}/edit`}>
-                  <Button variant="outline" size="sm">
-                    <Pencil size={14} className="mr-1" /> Edit
-                  </Button>
-                </Link>
+                <Link href={`/listings/${id}/edit`} className="btn btn-primary">{d.edit}</Link>
                 {!listing.is_sold && (
-                  <Button variant="outline" size="sm" onClick={handleSold}>
-                    <CheckCircle size={14} className="mr-1" /> Mark Sold
-                  </Button>
+                  <button onClick={handleSold} className="btn btn-secondary">{d.markSold}</button>
                 )}
-                <Button variant="destructive" size="sm" onClick={handleDelete}>
-                  <Trash2 size={14} className="mr-1" /> Delete
-                </Button>
+                <button onClick={handleDelete} className="btn btn-danger">{d.delete}</button>
               </>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="detail-sidebar-card">
+          <div>
+            <div className={`detail-price-tag ${price.isFree ? "free" : ""}`}>
+              {price.isFree ? d.free : price.text}
+            </div>
+          </div>
+
+          <div className="detail-sidebar-section">
+            <div className="detail-sidebar-label">{d.seller}</div>
+            <div className="detail-seller-name">{listing.seller_name}</div>
+          </div>
+
+          <div className="detail-sidebar-section">
+            <div className="detail-sidebar-label">{d.contactSeller}</div>
+            {!isOwner ? (
+              sellerProfile?.contact_info ? (
+                <div className="detail-contact">{sellerProfile.contact_info}</div>
+              ) : user ? (
+                <div className="detail-contact" style={{ fontStyle: "italic", color: "var(--text-muted)" }}>{d.noContact}</div>
+              ) : (
+                <div className="detail-contact">
+                  <Link href="/auth/login" style={{ color: "var(--accent)" }}>{d.signIn}</Link>{" "}{d.signInToContact}
+                </div>
+              )
+            ) : (
+              <div className="detail-contact" style={{ color: "var(--text-muted)" }}>—</div>
+            )}
+          </div>
+
+          {!isOwner && !user && (
+            <Link href="/auth/login" className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+              {d.signIn}
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

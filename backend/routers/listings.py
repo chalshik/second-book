@@ -55,6 +55,10 @@ def create_listing(
     doc_ref = db.collection("listings").document()
     data = {
         "title": body.title,
+        "author": body.author or "",
+        "price": body.price,
+        "condition": body.condition or "good",
+        "description": body.description or "",
         "seller_id": current_user["uid"],
         "seller_name": seller_name,
         "is_sold": False,
@@ -84,6 +88,14 @@ def update_listing(
     updates: dict = {"updated_at": datetime.now(timezone.utc)}
     if body.title is not None:
         updates["title"] = body.title
+    if body.author is not None:
+        updates["author"] = body.author
+    if body.price is not None:
+        updates["price"] = body.price
+    if body.condition is not None:
+        updates["condition"] = body.condition
+    if body.description is not None:
+        updates["description"] = body.description
     doc_ref.update(updates)
     data.update(updates)
     data["id"] = listing_id

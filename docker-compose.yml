@@ -1,0 +1,9 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/second-book-db84f-firebase-adminsdk-fbsvc-30eb85d73d.json:/app/second-book-db84f-firebase-adminsdk-fbsvc-30eb85d73d.json:ro

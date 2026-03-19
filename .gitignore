@@ -1,0 +1,16 @@
+# Firebase credentials — never commit
+backend/*.json
+backend/.env
+
+# Frontend env
+frontend/.env.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Next.js
+frontend/.next/
+frontend/node_modules/

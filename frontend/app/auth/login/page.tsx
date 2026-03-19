@@ -2,19 +2,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLang } from "@/lib/lang-context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLang();
+  const l = t.login;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,7 +23,7 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/listings");
     } catch {
-      setError("Invalid email or password.");
+      setError(l.error);
       setLoading(false);
     }
   }
@@ -39,62 +34,47 @@ export default function LoginPage() {
       await signInWithPopup(auth, new GoogleAuthProvider());
       router.push("/listings");
     } catch {
-      setError("Google sign-in failed.");
+      setError(l.googleError);
     }
   }
 
   return (
-    <div className="max-w-sm mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Sign In</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <form onSubmit={handleLogin} className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button type="submit" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 border-t border-slate-200" />
-            <span className="text-xs text-slate-400">or</span>
-            <div className="flex-1 border-t border-slate-200" />
-          </div>
-          <Button variant="outline" onClick={handleGoogle}>
-            Continue with Google
-          </Button>
-          <p className="text-sm text-center text-slate-500">
-            No account?{" "}
-            <Link
-              href="/auth/register"
-              className="text-slate-900 font-medium underline"
-            >
-              Register
-            </Link>
+    <div className="form-page">
+      <Link href="/listings" className="detail-back">&larr; {t.detail.back}</Link>
+
+      <div className="form-card">
+        <div className="form-header">
+          <h2 className="form-title">{l.title}</h2>
+          <p className="form-sub">
+            {l.noAccount}{" "}
+            <Link href="/auth/register">{l.register}</Link>
           </p>
-        </CardContent>
-      </Card>
+        </div>
+
+        <form onSubmit={handleLogin} className="form-stack">
+          <div className="form-field">
+            <label className="form-label">{l.emailLabel}</label>
+            <input className="form-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+          </div>
+          <div className="form-field">
+            <label className="form-label">{l.passwordLabel}</label>
+            <input className="form-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          {error && <div className="form-error">{error}</div>}
+          <div className="form-actions">
+            <button type="submit" disabled={loading} className="btn btn-primary btn-lg" style={{ flex: 1 }}>
+              {loading ? l.submitting : l.submit}
+            </button>
+          </div>
+          <div style={{ position: "relative", textAlign: "center", margin: "0.25rem 0" }}>
+            <span style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--bg)", padding: "0 0.5rem", position: "relative", zIndex: 1 }}>or</span>
+            <div style={{ position: "absolute", top: "50%", left: 0, right: 0, borderTop: "1px solid var(--border-light)" }} />
+          </div>
+          <button type="button" onClick={handleGoogle} className="btn btn-secondary btn-lg" style={{ width: "100%", justifyContent: "center" }}>
+            {l.google}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

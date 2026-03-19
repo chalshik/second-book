@@ -1,62 +1,48 @@
 "use client";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "./ui/button";
-import { BookOpen } from "lucide-react";
+import { useLang } from "@/lib/lang-context";
 
 export function Navbar() {
   const { user, loading, logout } = useAuth();
+  const { lang, setLang, t } = useLang();
 
   return (
-    <nav className="border-b border-slate-200 bg-white sticky top-0 z-10">
-      <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-semibold text-slate-900"
-        >
-          <BookOpen size={20} />
-          SecondBook
-        </Link>
-        <div className="flex items-center gap-1">
-          <Link href="/listings">
-            <Button variant="ghost" size="sm">
-              Browse
-            </Button>
-          </Link>
+    <header className="navbar">
+      <div className="navbar-inner">
+        <Link href="/" className="navbar-logo">Second Book</Link>
+
+        <div className="navbar-right">
+          {!loading && user && (
+            <Link href="/listings/new" className="navbar-sell">
+              + {t.nav.sell}
+            </Link>
+          )}
+
+          <button
+            onClick={() => setLang(lang === "en" ? "ru" : "en")}
+            className="navbar-text-btn"
+          >
+            {lang === "en" ? "RU" : "EN"}
+          </button>
+
           {!loading && (
             <>
               {user ? (
                 <>
-                  <Link href="/listings/new">
-                    <Button variant="ghost" size="sm">
-                      Sell
-                    </Button>
-                  </Link>
-                  <Link href="/profile">
-                    <Button variant="ghost" size="sm">
-                      Profile
-                    </Button>
-                  </Link>
-                  <Button variant="outline" size="sm" onClick={logout}>
-                    Sign out
-                  </Button>
+                  <Link href="/profile" className="navbar-text-btn">{t.nav.profile}</Link>
+                  <button onClick={logout} className="navbar-text-btn">{t.nav.signOut}</button>
                 </>
               ) : (
                 <>
-                  <Link href="/auth/login">
-                    <Button variant="ghost" size="sm">
-                      Sign in
-                    </Button>
-                  </Link>
-                  <Link href="/auth/register">
-                    <Button size="sm">Register</Button>
-                  </Link>
+                  <Link href="/auth/login" className="navbar-text-btn">{t.nav.signIn}</Link>
+                  <Link href="/auth/register" className="navbar-text-btn">{t.nav.register}</Link>
                 </>
               )}
             </>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

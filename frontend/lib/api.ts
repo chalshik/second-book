@@ -15,11 +15,31 @@ async function authHeaders(): Promise<HeadersInit> {
 export type Listing = {
   id: string;
   title: string;
+  author: string;
+  price: number | null;
+  condition: string;
+  description: string;
   seller_id: string;
   seller_name: string;
   is_sold: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type ListingCreateData = {
+  title: string;
+  author?: string;
+  price?: number | null;
+  condition?: string;
+  description?: string;
+};
+
+export type ListingUpdateData = {
+  title?: string;
+  author?: string;
+  price?: number | null;
+  condition?: string;
+  description?: string;
 };
 
 export type UserProfile = {
@@ -42,22 +62,22 @@ export const api = {
       if (!res.ok) throw new Error("Listing not found");
       return res.json();
     },
-    create: async (title: string): Promise<Listing> => {
+    create: async (data: ListingCreateData): Promise<Listing> => {
       const headers = await authHeaders();
       const res = await fetch(`${BASE}/listings`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ title }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to create listing");
       return res.json();
     },
-    update: async (id: string, title: string): Promise<Listing> => {
+    update: async (id: string, data: ListingUpdateData): Promise<Listing> => {
       const headers = await authHeaders();
       const res = await fetch(`${BASE}/listings/${id}`, {
         method: "PUT",
         headers,
-        body: JSON.stringify({ title }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to update listing");
       return res.json();
