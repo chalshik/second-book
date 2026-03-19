@@ -12,7 +12,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.listings.list().then((listings) => {
+    api.listings.list({}).then((listings) => {
       setRecent(listings.filter((l) => !l.is_sold).slice(0, 4));
     }).finally(() => setLoading(false));
   }, []);

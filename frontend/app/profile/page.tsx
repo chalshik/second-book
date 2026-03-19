@@ -26,7 +26,7 @@ export default function ProfilePage() {
     if (authLoading) return;
     if (!user) { router.push("/auth/login"); return; }
     api.users.me().then((u) => { setProfile(u); setDisplayName(u.display_name); setContactInfo(u.contact_info || ""); });
-    Promise.all([api.listings.list(), api.users.bookmarks()]).then(([all, bm]) => {
+    Promise.all([api.listings.list({}), api.users.bookmarks()]).then(([all, bm]) => {
       setMyListings(all.filter((l) => l.seller_id === user.uid));
       setBookmarks(bm);
       setListingsLoading(false);

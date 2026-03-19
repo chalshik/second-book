@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
-import { api, Listing } from "@/lib/api";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { api, Listing, ListingFilters } from "@/lib/api";
 import { ListingCard, ListingCardSkeleton } from "@/components/ListingCard";
 import { useLang } from "@/lib/lang-context";
 import Link from "next/link";
@@ -16,10 +16,33 @@ export default function ListingsPage() {
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<SortMode>("newest");
 
-  useEffect(() => {
+  // Filters
+  const [filterCondition, setFilterCondition] = useState("");
+  const [filterGenre, setFilterGenre] = useState("");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+
+  const fetchListings = useCallback(() => {
     setLoading(true);
-    api.listings.list(search).then(setListings).finally(() => setLoading(false));
-  }, [search]);
+    const filters: ListingFilters = {};
+    if (search) filters.search = search;
+    if (filterCondition) filters.condition = filterCondition;
+    if (filterGenre) filters.genre = filterGenre;
+    if (priceMin) filters.price_min = parseFloat(priceMin);
+    if (priceMax) filters.price_max = parseFloat(priceMax);
+    api.listings.list(filters).then(setListings).finally(() => setLoading(false));
+  }, [search, filterCondition, filterGenre, priceMin, priceMax]);
+
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
+
+  // Derive genre list from loaded listings for the filter dropdown
+  const allGenres = useMemo(() => {
+    const set = new Set<string>();
+    listings.forEach((l) => { if (l.genre) set.add(l.genre); });
+    return Array.from(set).sort();
+  }, [listings]);
 
   const sorted = useMemo(() => {
     const copy = [...listings];
@@ -28,9 +51,18 @@ export default function ListingsPage() {
     return copy;
   }, [listings, sort]);
 
+  const hasActiveFilters = filterCondition || filterGenre || priceMin || priceMax;
+
+  function clearFilters() {
+    setFilterCondition("");
+    setFilterGenre("");
+    setPriceMin("");
+    setPriceMax("");
+  }
+
   return (
     <div className="page-container" style={{ paddingTop: "calc(60px + 2rem)" }}>
-      <div className="search-bar" style={{ marginBottom: "1.5rem" }}>
+      <div className="search-bar" style={{ marginBottom: "1rem" }}>
         <input
           className="search-input"
           type="text"
@@ -39,6 +71,54 @@ export default function ListingsPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <button className="search-btn">{t.listings.search}</button>
+      </div>
+
+      {/* Filters */}
+      <div className="filter-row">
+        <select
+          className="filter-select"
+          value={filterCondition}
+          onChange={(e) => setFilterCondition(e.target.value)}
+        >
+          <option value="">{t.detail.condition}: All</option>
+          {(["new", "like_new", "good", "fair", "poor"] as const).map((c) => (
+            <option key={c} value={c}>{t.conditions[c]}</option>
+          ))}
+        </select>
+
+        <select
+          className="filter-select"
+          value={filterGenre}
+          onChange={(e) => setFilterGenre(e.target.value)}
+        >
+          <option value="">Genre: All</option>
+          {allGenres.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
+
+        <input
+          className="filter-input"
+          type="number"
+          min="0"
+          placeholder="Min KGS"
+          value={priceMin}
+          onChange={(e) => setPriceMin(e.target.value)}
+        />
+        <input
+          className="filter-input"
+          type="number"
+          min="0"
+          placeholder="Max KGS"
+          value={priceMax}
+          onChange={(e) => setPriceMax(e.target.value)}
+        />
+
+        {hasActiveFilters && (
+          <button className="filter-clear" onClick={clearFilters}>
+            Clear filters
+          </button>
+        )}
       </div>
 
       <div className="listings-toolbar">
@@ -79,8 +159,13 @@ export default function ListingsPage() {
               </>
             ) : t.listings.noListings}
           </p>
-          {!search && (
+          {!search && !hasActiveFilters && (
             <Link href="/listings/new" className="btn btn-primary">{t.listings.sellBook}</Link>
+          )}
+          {hasActiveFilters && (
+            <button onClick={clearFilters} className="btn btn-secondary" style={{ marginTop: "0.5rem" }}>
+              Clear filters
+            </button>
           )}
         </div>
       ) : (
