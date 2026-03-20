@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, Listing, UserProfile } from "@/lib/api";
+import { api, Listing, UserProfile, Review } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useLang } from "@/lib/lang-context";
 import { getDiscountedPrice } from "@/components/ListingCard";
@@ -37,9 +37,16 @@ export default function ListingDetailPage() {
   const [bookmarked, setBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"desc" | "details">("desc");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
-    api.listings.get(id).then(setListing).catch(() => setListing(null)).finally(() => setLoading(false));
+    api.listings.get(id).then((l) => {
+      setListing(l);
+      api.reviews.getForSeller(l.seller_id).then(setReviews).catch(() => {});
+    }).catch(() => setListing(null)).finally(() => setLoading(false));
   }, [id]);
 
   // Fetch current user's profile for bookmark state
@@ -60,6 +67,27 @@ export default function ListingDetailPage() {
   async function handleSold() {
     await api.listings.markSold(id);
     setListing((l) => (l ? { ...l, is_sold: true } : l));
+  }
+
+  async function handleSubmitReview(e: React.FormEvent) {
+    e.preventDefault();
+    if (!listing || reviewRating === 0) return;
+    setSubmittingReview(true);
+    try {
+      await api.reviews.create(listing.seller_id, { rating: reviewRating, comment: reviewComment });
+      const updated = await api.reviews.getForSeller(listing.seller_id);
+      setReviews(updated);
+      setReviewRating(0);
+      setReviewComment("");
+    } finally {
+      setSubmittingReview(false);
+    }
+  }
+
+  async function handleDeleteReview() {
+    if (!listing) return;
+    await api.reviews.deleteOwn(listing.seller_id);
+    setReviews(await api.reviews.getForSeller(listing.seller_id));
   }
 
   async function toggleBookmark() {
@@ -105,6 +133,11 @@ export default function ListingDetailPage() {
   const hasPaid = listing.price !== null && listing.price !== undefined && listing.price > 0;
   const finalPrice = getDiscountedPrice(listing.price, discount);
   const hasDiscount = hasPaid && discount > 0;
+
+  const myReview = user ? reviews.find((r) => r.reviewer_id === user.uid) ?? null : null;
+  const avgRating = reviews.length
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    : null;
 
   // The seller's contact_info is stored on the listing seller's user doc.
   // myProfile is the current logged-in user. If the current user IS the seller,
@@ -248,6 +281,14 @@ export default function ListingDetailPage() {
               <div className="seller-avatar">{sellerInitial}</div>
               <div>
                 <div className="seller-name">{listing.seller_name}</div>
+                {avgRating !== null ? (
+                  <div className="seller-meta" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    <span style={{ color: "#f59e0b" }}>{"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}</span>
+                    <span>{t.reviews.avgRating(avgRating, reviews.length)}</span>
+                  </div>
+                ) : (
+                  <div className="seller-meta">{t.reviews.noReviews}</div>
+                )}
                 {isOwner && <div className="seller-meta">This is your listing</div>}
               </div>
             </div>
@@ -293,6 +334,98 @@ export default function ListingDetailPage() {
               <Link href="/auth/login" className="btn-interested" style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
                 {d.signIn}
               </Link>
+            )}
+          </div>
+
+          {/* Reviews Section */}
+          <div style={{ marginTop: "1.5rem", borderTop: "1px solid var(--border)", paddingTop: "1.25rem" }}>
+            <div style={{ fontWeight: 600, fontSize: "0.95rem", marginBottom: "1rem" }}>{t.reviews.title}</div>
+
+            {/* Review form for non-owner logged-in users */}
+            {!isOwner && user && !myReview && (
+              <form onSubmit={handleSubmitReview} style={{ marginBottom: "1.25rem", background: "var(--card-bg, #f9f9f9)", borderRadius: 8, padding: "1rem", border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "0.5rem" }}>{t.reviews.yourRating}</div>
+                <div style={{ display: "flex", gap: "0.25rem", marginBottom: "0.75rem" }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.5rem", color: star <= reviewRating ? "#f59e0b" : "var(--muted)", padding: 0 }}
+                    >
+                      {star <= reviewRating ? "★" : "☆"}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder={t.reviews.commentPlaceholder}
+                  rows={3}
+                  style={{ width: "100%", resize: "vertical", borderRadius: 6, border: "1px solid var(--border)", padding: "0.5rem", fontSize: "0.875rem", boxSizing: "border-box", fontFamily: "inherit" }}
+                />
+                <button
+                  type="submit"
+                  disabled={reviewRating === 0 || submittingReview}
+                  className="btn btn-primary btn-sm"
+                  style={{ marginTop: "0.5rem" }}
+                >
+                  {submittingReview ? t.reviews.submitting : t.reviews.submit}
+                </button>
+              </form>
+            )}
+
+            {/* Owner cannot review */}
+            {isOwner && (
+              <p style={{ fontSize: "0.85rem", color: "var(--muted)", fontStyle: "italic", marginBottom: "1rem" }}>
+                {t.reviews.cannotReviewOwn}
+              </p>
+            )}
+
+            {/* Not logged in */}
+            {!user && (
+              <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "1rem" }}>
+                <Link href="/auth/login" style={{ color: "var(--accent)" }}>{d.signIn}</Link>{" "}{t.reviews.signInToReview}
+              </p>
+            )}
+
+            {/* Existing reviews list */}
+            {reviews.length === 0 && (
+              <p style={{ fontSize: "0.85rem", color: "var(--muted)", fontStyle: "italic" }}>{t.reviews.noReviews}</p>
+            )}
+            {reviews.map((review) => (
+              <div key={review.id} style={{ borderBottom: "1px solid var(--border)", paddingBottom: "0.875rem", marginBottom: "0.875rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{review.reviewer_name}</span>
+                    <span style={{ color: "#f59e0b", marginLeft: "0.5rem", fontSize: "0.9rem" }}>
+                      {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>{relativeTime(review.created_at)}</span>
+                    {user && review.reviewer_id === user.uid && (
+                      <button
+                        onClick={handleDeleteReview}
+                        className="btn btn-danger btn-sm"
+                        style={{ fontSize: "0.75rem", padding: "0.15rem 0.5rem" }}
+                      >
+                        {t.reviews.deleteReview}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {review.comment && (
+                  <p style={{ margin: "0.375rem 0 0", fontSize: "0.85rem", color: "var(--text)" }}>{review.comment}</p>
+                )}
+              </div>
+            ))}
+
+            {/* After submitting, allow editing by showing a note */}
+            {myReview && !isOwner && (
+              <p style={{ fontSize: "0.8rem", color: "var(--muted)", fontStyle: "italic" }}>
+                You have already reviewed this seller. Delete your review to submit a new one.
+              </p>
             )}
           </div>
         </div>
