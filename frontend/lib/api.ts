@@ -63,6 +63,20 @@ export type UserProfile = {
   bookmarks: string[];
 };
 
+export type Review = {
+  id: string;
+  reviewer_id: string;
+  reviewer_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+};
+
+export type ReviewCreateData = {
+  rating: number;
+  comment?: string;
+};
+
 export const api = {
   listings: {
     list: async (filters: ListingFilters = {}): Promise<Listing[]> => {
@@ -155,6 +169,31 @@ export const api = {
         method: "DELETE",
         headers,
       });
+    },
+  },
+  reviews: {
+    getForSeller: async (sellerId: string): Promise<Review[]> => {
+      const res = await fetch(`${BASE}/reviews/seller/${sellerId}`);
+      if (!res.ok) throw new Error("Failed to fetch reviews");
+      return res.json();
+    },
+    create: async (sellerId: string, data: ReviewCreateData): Promise<Review> => {
+      const headers = await authHeaders();
+      const res = await fetch(`${BASE}/reviews/seller/${sellerId}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to submit review");
+      return res.json();
+    },
+    deleteOwn: async (sellerId: string): Promise<void> => {
+      const headers = await authHeaders();
+      const res = await fetch(`${BASE}/reviews/seller/${sellerId}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) throw new Error("Failed to delete review");
     },
   },
 };

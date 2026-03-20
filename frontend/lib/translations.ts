@@ -147,6 +147,20 @@ export const translations = {
       fair: "Fair",
       poor: "Poor",
     } as Record<string, string>,
+    reviews: {
+      title: "Seller reviews",
+      writeReview: "Write a review",
+      yourRating: "Your rating",
+      commentPlaceholder: "Share your experience (optional)...",
+      submit: "Submit review",
+      submitting: "Submitting...",
+      noReviews: "No reviews yet. Be the first to review this seller!",
+      deleteReview: "Delete",
+      cannotReviewOwn: "You can't review your own listing.",
+      signInToReview: "Sign in to leave a review.",
+      avgRating: (avg: number, count: number) =>
+        `${avg.toFixed(1)} (${count} review${count !== 1 ? "s" : ""})`,
+    },
     footer: {
       copy: "Second Book",
       tagline: "Give books a second life.",
@@ -303,6 +317,20 @@ export const translations = {
       fair: "Среднее",
       poor: "Плохое",
     } as Record<string, string>,
+    reviews: {
+      title: "Отзывы о продавце",
+      writeReview: "Написать отзыв",
+      yourRating: "Ваша оценка",
+      commentPlaceholder: "Поделитесь впечатлением (необязательно)...",
+      submit: "Отправить отзыв",
+      submitting: "Отправка...",
+      noReviews: "Отзывов пока нет. Будьте первым!",
+      deleteReview: "Удалить",
+      cannotReviewOwn: "Нельзя оставить отзыв на собственное объявление.",
+      signInToReview: "Войдите, чтобы оставить отзыв.",
+      avgRating: (avg: number, count: number) =>
+        `${avg.toFixed(1)} (${count} отзыв${count === 1 ? "" : count < 5 ? "а" : "ов"})`,
+    },
     footer: {
       copy: "Second Book",
       tagline: "Дайте книгам вторую жизнь.",
