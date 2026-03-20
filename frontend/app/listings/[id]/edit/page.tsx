@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useLang } from "@/lib/lang-context";
+import { Select } from "@/components/ui/select";
 
 const CONDITIONS = [
   { value: "like_new", label: "Like New", desc: "No marks" },
@@ -125,7 +126,7 @@ export default function EditListingPage() {
                 </div>
                 <div className="form-field">
                   <label className="form-label">Genre</label>
-                  <select
+                  <Select
                     className="form-select"
                     value={genre}
                     onChange={(ev) => setGenre(ev.target.value)}
@@ -134,7 +135,7 @@ export default function EditListingPage() {
                     {GENRES.map((g) => (
                       <option key={g} value={g}>{g}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div className="form-field field-span2">
                   <label className="form-label">{e.descriptionLabel}</label>

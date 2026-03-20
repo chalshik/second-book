@@ -5,13 +5,20 @@ import { ListingCard, ListingCardSkeleton } from "@/components/ListingCard";
 import { useLang } from "@/lib/lang-context";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { Select } from "@/components/ui/select";
 
 type SortMode = "newest" | "price_asc" | "price_desc";
+
+const GENRES = [
+  "Fiction", "Non-Fiction", "Science", "History", "Arts",
+  "Self-Help", "Children", "Classic", "Fantasy", "Biography", "Other",
+];
 
 export default function ListingsPage() {
   const { t } = useLang();
   const { user, loading: authLoading } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<SortMode>("newest");
@@ -37,12 +44,9 @@ export default function ListingsPage() {
     fetchListings();
   }, [fetchListings]);
 
-  // Derive genre list from loaded listings for the filter dropdown
-  const allGenres = useMemo(() => {
-    const set = new Set<string>();
-    listings.forEach((l) => { if (l.genre) set.add(l.genre); });
-    return Array.from(set).sort();
-  }, [listings]);
+  function commitSearch() {
+    setSearch(searchInput);
+  }
 
   const sorted = useMemo(() => {
     const copy = [...listings];
@@ -51,9 +55,11 @@ export default function ListingsPage() {
     return copy;
   }, [listings, sort]);
 
-  const hasActiveFilters = filterCondition || filterGenre || priceMin || priceMax;
+  const hasActiveFilters = search || filterCondition || filterGenre || priceMin || priceMax;
 
   function clearFilters() {
+    setSearch("");
+    setSearchInput("");
     setFilterCondition("");
     setFilterGenre("");
     setPriceMin("");
@@ -67,15 +73,16 @@ export default function ListingsPage() {
           className="search-input"
           type="text"
           placeholder={t.listings.searchPlaceholder}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") commitSearch(); }}
         />
-        <button className="search-btn">{t.listings.search}</button>
+        <button className="search-btn" onClick={commitSearch}>{t.listings.search}</button>
       </div>
 
       {/* Filters */}
       <div className="filter-row">
-        <select
+        <Select
           className="filter-select"
           value={filterCondition}
           onChange={(e) => setFilterCondition(e.target.value)}
@@ -84,18 +91,18 @@ export default function ListingsPage() {
           {(["new", "like_new", "good", "fair", "poor"] as const).map((c) => (
             <option key={c} value={c}>{t.conditions[c]}</option>
           ))}
-        </select>
+        </Select>
 
-        <select
+        <Select
           className="filter-select"
           value={filterGenre}
           onChange={(e) => setFilterGenre(e.target.value)}
         >
           <option value="">Genre: All</option>
-          {allGenres.map((g) => (
+          {GENRES.map((g) => (
             <option key={g} value={g}>{g}</option>
           ))}
-        </select>
+        </Select>
 
         <input
           className="filter-input"
@@ -126,7 +133,7 @@ export default function ListingsPage() {
           {loading ? "..." : t.listings.count(listings.length)}
         </span>
         <div className="listings-controls">
-          <select
+          <Select
             className="sort-select"
             value={sort}
             onChange={(e) => setSort(e.target.value as SortMode)}
@@ -134,7 +141,7 @@ export default function ListingsPage() {
             <option value="newest">{t.listings.sortNewest}</option>
             <option value="price_asc">{t.listings.sortPriceLow}</option>
             <option value="price_desc">{t.listings.sortPriceHigh}</option>
-          </select>
+          </Select>
           {!authLoading && user && (
             <Link href="/listings/new" className="btn btn-primary btn-sm">
               + {t.listings.sellBook}
@@ -153,7 +160,7 @@ export default function ListingsPage() {
             {search ? (
               <>
                 {t.listings.noResults(search)}{" "}
-                <button onClick={() => setSearch("")} className="link-button">
+                <button onClick={() => { setSearch(""); setSearchInput(""); }} className="link-button">
                   {t.listings.clear}
                 </button>
               </>
